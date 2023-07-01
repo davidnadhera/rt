@@ -1,0 +1,11 @@
+<select multiple class="form-control selectpicker" title="{{title}}"
+      data-live-search="true" data-selected-text-format="count"
+      id="{{id}}" name="{{name}}" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false" data-size="false">
+   {% for kraj in kraje %}
+       <option value="{{kraj.0}}" {% if kraj.0 in selected %}
+                     selected="selected"
+                   {% endif %}>{{kraj.1}}</option>
+   {% endfor %}
+</select>

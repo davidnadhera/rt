@@ -1,0 +1,579 @@
+{% extends 'base.html' %}
+
+{% block title %}
+        Railtour - výpočet tras
+{% endblock title%}
+
+{% block content %}
+<div class="container">
+<form id="zadani">
+    <div class="form-group">
+        <label for="od">Odkud
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-light"  onClick="startClick()" />Start - Olomouc</button>
+            <button type="button" class="btn btn-light"  onClick="po1Click()" />Praha - pondělí</button>
+            <button type="button" class="btn btn-light"  onClick="ut1Click()" />Praha - úterý</button>
+            <button type="button" class="btn btn-light"  onClick="st1Click()" />Praha - středa</button>
+            <button type="button" class="btn btn-light"  onClick="ct1Click()" />Praha - čtvrtek</button>
+            <button type="button" class="btn btn-light"  onClick="pa1Click()" />Praha - pátek</button>
+            <button type="button" class="btn btn-light"  onClick="rv1Click()" />ráno / večer</button>
+          </div>
+        </label>
+        {% include 'railtour/vyberStanice.html' with id='od' name='od' selected=zadani.start_point_id %}
+    </div>
+    <div class="form-row form-group ">
+      <div class="col">
+          <label for="cas1">Start - Datum</label>
+          <input type="date" class="form-control" id="cas1" name="cas1" value='{{zadani.start_time|date:"Y-m-d"}}'>
+      </div>
+      <div class="col">
+          <label for="cas2">Čas</label>
+          <input type="time" class="form-control" id="cas2" name="cas2" value='{{zadani.start_time|time:"H:i"}}'>
+      </div>
+    </div>
+    <div class="form-group">
+        <label for="selectdo">Kam
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-light"  onClick="cilClick()" />Cíl - Olomouc</button>
+            <button type="button" class="btn btn-light"  onClick="po2Click()" />Praha - pondělí</button>
+            <button type="button" class="btn btn-light"  onClick="ut2Click()" />Praha - úterý</button>
+            <button type="button" class="btn btn-light"  onClick="st2Click()" />Praha - středa</button>
+            <button type="button" class="btn btn-light"  onClick="ct2Click()" />Praha - čtvrtek</button>
+            <button type="button" class="btn btn-light"  onClick="pa2Click()" />Praha - pátek</button>
+            <button type="button" class="btn btn-light"  onClick="Praha2Click()" />Praha - kdykoliv</button>
+            <button type="button" class="btn btn-light"  onClick="rv2Click()" />ráno / večer</button>
+          </div>
+        </label>
+        {% include 'railtour/multiVyberStanice.html' with title='libovolný cíl' id='selectdo' name='do[]' class_='chbdo' opt_id='chbd' selected=zadani.finish_points %}
+    </div>
+    <div class="form-row form-group ">
+      <div class="col">
+          <label for="mintime1">Cíl - od - Datum</label>
+          <input type="date" class="form-control" id="mintime1" name="mintime1" value='{{zadani.finish_time_from|date:"Y-m-d"}}'>
+      </div>
+      <div class="col">
+          <label for="mintime2">Čas</label>
+          <input type="time" class="form-control" id="mintime2" name="mintime2" value='{{zadani.finish_time_from|time:"H:i"}}'>
+      </div>
+      <div class="col">
+          <label for="maxtime1">do - Datum</label>
+          <input type="date" class="form-control" id="maxtime1" name="maxtime1" value='{{zadani.finish_time_to|date:"Y-m-d"}}'>
+      </div>
+      <div class="col">
+          <label for="maxtime2">Čas</label>
+          <input type="time" class="form-control" id="maxtime2" name="maxtime2" value='{{zadani.finish_time_to|time:"H:i"}}'>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="selectvisited">Navštívené checkpointy</label>
+      {% include 'railtour/multiVyberStanice.html' with title='žádné nevybrány' id='selectvisited' name='visited[]' class_='chbvisited' opt_id='chb' selected=zadani.visited %}
+    </div>
+    <div class="form-group">
+      <div class="form-check-inline">
+        <label class="form-check-label" >
+            <input class="form-check-input" type="checkbox" id="spanek" name="spanek" value="1" {% if zadani.sleep %}
+                     checked="checked"
+                   {% endif %}>
+            Spánek
+        </label>
+      </div>
+      <div class="form-check-inline">
+        <label class="form-check-label">
+            <input type="checkbox" id="usepremie" name="usepremie" value="1" {% if zadani.use_time_bonus %}
+                     checked="checked"
+                   {% endif %}>
+            Používat FTF prémie
+        </label>
+      </div>
+      <div class="form-check-inline">
+        <label class="form-check-label">
+            <input type="checkbox" id="consolation" name="consolation" value="1" {% if zadani.start_consolation %}
+                     checked="checked"
+                   {% endif %}>
+            Body útěchy
+        </label>
+      </div>
+    </div>
+    <div class="form-group ">
+    <div class="form-row form-group ">
+        <div class="col-9">
+            <label for="selecttempvisited">Dočasně blokované checkpointy</label>
+            {% include 'railtour/multiVyberStanice.html' with title='žádné nevybrány' id='selecttempvisited' name='tempid[]' class_='chbtempvisited' opt_id='chbt' selected=zadani.tempblocked %}
+        </div>
+        <div class="col-3">
+            <label for="temptime">Blokováno do</label>
+            <input type='datetime-local'name='temptime' id='temptime' value="{{zadani.tempblocked_to|date:'Y-m-d'}}T{{zadani.tempblocked_to|time:'H:i:s'}}" >
+        </div>
+    </div>
+<div class="accordion" id="accordionEx" role="tablist" aria-multiselectable="true">
+  <div class="card">
+    <div class="card-header" role="tab" id="headingOne1">
+      <a data-toggle="collapse" data-parent="#accordionEx" href="#collapseOne1" aria-expanded="true"
+        aria-controls="collapseOne1" onclick="$('#collapsed-arrow').toggleClass('fa-rotate-180')">
+        <h5 class="mb-0">
+          Rozšířené zadání <i class="fas fa-angle-down" id="collapsed-arrow"></i>
+        </h5>
+      </a>
+    </div>
+    <div id="collapseOne1" class="collapse" role="tabpanel" aria-labelledby="headingOne1" data-parent="#accordionEx">
+        <div class="card-body">
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="body">Body</label>
+                    <input type="number" class="form-control" id="body" name="body" value="{{zadani.start_points}}">
+                </div>
+                <div class="col">
+                    <label for="km">Km</label>
+                    <input type="number" class="form-control" id="km" name="km" step="0.1" value="{{zadani.start_km}}">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="kroku">Kroků v iteraci</label>
+                    <input type="number" class="form-control" id="kroku" name="kroku" value="{{zadani.steps}}">
+                </div>
+                <div class="col">
+                    <label for="koef_unavy">Koeficient únavy</label>
+                    <input type="number" class="form-control" id="koef_unavy" name="koef_unavy" step="0.01" value="{{zadani.tiredness}}">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="limitpocet">Limit pro počet</label>
+                    <input type="number" class="form-control" id="limitpocet" name="limitpocet" value="{{zadani.limit_amount}}">
+                </div>
+                <div class="col">
+                    <label for="limitvykon">Limit pro výkon</label>
+                    <input type="number" class="form-control" id="limitvykon" name="limitvykon" step="0.01" value="{{zadani.limitprofit}}">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="kmcelk">Limit pro km</label>
+                    <input type="number" class="form-control" id="kmcelk" name="kmcelk" step="0.1" value="{{zadani.max_km}}">
+                </div>
+                <div class="col">
+                    <label for="C">Záporné body za km nad limit</label>
+                    <input type="number" class="form-control" id="C" name="C" step="0.01" value="{{zadani.km_penalty}}">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="uroven">Checkpointy ve dni startu</label>
+                    <input type="number" class="form-control" id="uroven" name="uroven" value="{{zadani.start_inday}}">
+                </div>
+                <div class="col">
+                    <label for="metoda">Metoda</label>
+                    <select class="selectmetoda form-control" id="metoda" name="metoda">
+                        <option value="1" {% if zadani.profit_type == 1 %}
+                     selected="selected"
+                   {% endif %}>výkon 1 po checkpointech</option>
+                        <option value="2" {% if zadani.profit_type == 2 %}
+                     selected="selected"
+                   {% endif %}>výkon 2 po checkpointech</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="spanekod">Spánek v rozmezí od </label>
+                    <input type='datetime-local'name='spanekod' id='spanekod' value="{{zadani.sleep_from|date:'Y-m-d'}}T{{zadani.sleep_from|time:'H:i:s'}}" >
+                </div>
+                <div class="col">
+                    <label for="spanekdo">do </label>
+                    <input type='datetime-local'name='spanekdo' id='spanekdo' value="{{zadani.sleep_to|date:'Y-m-d'}}T{{zadani.sleep_to|time:'H:i:s'}}" >
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="selectkraje">Navštívené kraje v den startu</label>
+                    {% include 'railtour/vyberKraje.html' with title='žádné nevybrány' id='selectkraje' name='kraje[]' selected=zadani.start_regions %}
+                </div>
+                <div class="col">
+                    <label for="selectpostupka">Postupka v den startu</label>
+                    <select multiple class="form-control selectpicker" title="nic"
+                    data-selected-text-format="values"
+                    id="selectpostupka" name="postupka[]" data-dropup-auto="false" data-size="false">
+                    {% for i in '234567' %}
+                        <option value="{{i}}" {% if i in zadani.start_streak %}
+                            selected="selected"
+                            {% endif %}>{{i}}
+                        </option>
+                    {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+  </div>
+</div>
+    <div class="form-group ">
+      <button type="button" class="btn btn-info"  onClick="vypocetClick()" />Vypočítat trasy</button>
+      <button type="button" class="btn btn-info"  onClick="pokracovatClick()" />Pokračovat</button>
+      <button type="button" class="btn btn-info"  onClick="navazatClick()" />Navázat</button>
+      <button type="button" class="btn btn-info"  onClick="zastavitClick()" />Zastavit</button>
+    </div>
+</form>
+</div>
+
+<div class="container-fluid">
+    <p align="right" id="vyvoj"></p>
+    <div class="progress">
+        <div class="progress-bar progress-bar-striped bg-info" id="timer" style="width:0%"></div>
+    </div>
+    <script>startTimer();</script>
+    <hr>
+    <form id="vysledky" name="vysledky">
+    <div class="row align-items-center">
+        <div class="form-group col-xs-3  col-md-3">
+        <label for="razeni">Řazení</label>
+        <select class="selectrazeni form-control" id="razeni" name="razeni">
+            <option value="1" {% if razeni == 1 %} selected="selected"{% endif %}>podle výkonu</option>
+            <option value="2" {% if razeni == 2 %} selected="selected"{% endif %}>podle bodů</option>
+            <option value="3" {% if razeni == 3 %} selected="selected"{% endif %}>podle prémií</option>
+            <option value="4" {% if razeni == 4 %} selected="selected"{% endif %}>podle bodů bez prémií</option>
+            <option value="5" {% if razeni == 5 %} selected="selected"{% endif %}>podle prvního chp.</option>
+            <option value="6" {% if razeni == 6 %} selected="selected"{% endif %}>podle posledního chp.</option>
+        </select>
+        </div>
+
+        <div class="form-group col-xs-3 col-md-3 form-check" style="text-align:center">
+            <label for="Praha" class="form-check-label">
+                <input type="checkbox" id="Praha" value="1" {% if Praha %}
+                        checked="checked"
+                        {% endif %}>
+                musí obsahovat povinný checkpoint
+            </label>
+        </div>
+
+        <div class="form-group col-xs-3 col-md-3">
+        <label for="start">První checkpoint</label>
+        {% include 'railtour/multiVyberStanice.html' with title='žádný filtr' id='start' name='start[]' class_='chbstart' opt_id='start' selected=start %}
+        </div>
+
+        <div class="form-group col-xs-3 col-md-3">
+        <label for="cil">Poslední checkpoint</label>
+        {% include 'railtour/multiVyberStanice.html' with title='žádný filtr' id='cil' name='cil[]' class_='chbcil' opt_id='cil' selected=cil %}
+        </div>
+    </div>
+    </form>
+
+
+<script>
+    fetchTrasy();
+</script>
+
+
+<div class="table-responsive">
+<table class='class=table-sm trasa'>
+    <tr>
+        <th>Checkpoint</th>
+        <th>Čas</th>
+        <th>Body</th>
+        <th>Km</th>
+        <th>Výkon 1</th>
+        <th>Spánek</th>
+        <th>První</th>
+        <th>Druhý</th>
+        <th>Detail</th>
+    </tr>
+</table>
+</div>
+      <input type="hidden" id="row" value="0">
+      <input type="hidden" id="all" value="0">
+</div>
+{% endblock content %}
+
+{% block javascript %}
+<script>
+    $(document).ready(function() {
+ //         $(document).on('load',fetchTrasy);
+
+        $('.selectrazeni').on('change',fetchTrasy);
+        $('#Praha').on('change',fetchTrasy);
+        $('#start').on('change',fetchTrasy);
+        $('#cil').on('change',fetchTrasy);
+
+
+
+
+          $(window).scroll(function(){
+
+            var position = $(window).scrollTop();
+            var dh = document.body.clientHeight; //$(document).height();
+            var wh = window.innerHeight;
+            var bottom = dh - wh;
+
+
+            if( position >= bottom ){
+
+             var row = Number($('#row').val());
+             var cas1 = String($('#cas1').val());
+             var cas2 = String($('#cas2').val());
+             var allcount = Number($('#all').val());
+             var razeni = Number($('#razeni').val());
+             var Praha = Number($('#Praha').prop("checked"));
+             var start = $("#start").val();
+             var cil = $("#cil").val();
+             var rowperpage = 10;
+             row = row + rowperpage;
+
+             if(row <= allcount){
+              $('#row').val(row);
+              $.ajax({
+               url: '{% url 'ajax:fetch_trasy' %}',
+               type: 'post',
+               data: {row:row, razeni:razeni, Praha:Praha, start:start, cil:cil, csrfmiddlewaretoken: '{{ csrf_token }}'},
+               success: function(response){
+                $(".trasa").append(response).show().fadeIn("slow");
+               }
+              });
+             }
+            }
+
+          });
+
+    });
+
+    function startTimer() {
+        if ($("#timer").is(":hidden")) {
+            $("#timer").css("width","0%");
+            $("#timer").parent().show();
+            $("#vyvoj").show();
+            var t=setTimeout(startTimer,1000);
+        } else {
+            $.ajax({
+                url: '{% url 'ajax:iterace' %}',
+                type: 'post',
+                data: {csrfmiddlewaretoken: '{{ csrf_token }}'},
+                success: function(response){
+                    var arr = response.split(";");
+                    if (arr[0]==-1) {
+                    $("#timer").parent().hide();
+                    $("#vyvoj").hide();
+                    clearTimeout(t);
+                    } else {
+                    var metoda = Number($('#metoda').val());;
+                    var cas1 = String($('#cas1').val());
+                    var cas2 = String($('#cas2').val());
+                    var maxtime1 = String($('#maxtime1').val());
+                    var maxtime2 = String($('#maxtime2').val());
+                    var start;
+                    if (cas1 && cas2) {
+                        start = new Date(cas1+" "+cas2);
+                    } else {
+                        start = new Date("2020-08-02 9:00");
+                    }
+                    var cil;
+                    if (maxtime1 && maxtime2) {
+                        cil = new Date(maxtime1+" "+maxtime2);
+                    } else {
+                        cil = new Date("2020-08-06 16:00");
+                    }
+                    var hours = Math.abs(cil-start) / 36e5;
+                    var percent=0;
+                    if (Math.floor(metoda/10)==1) {
+                        percent = arr[0]/hours*100;
+                    } else {
+                        percent=arr[0]/hours*285;
+                    }
+                    $("#timer").css("width",percent+"%");
+                    $("#vyvoj").html("<b>iterace: "+arr[0]+", počet tras: "+arr[1]+"</b>");
+                    var t=setTimeout(startTimer,1000);
+                    }
+                }
+            });
+        }
+
+    }
+
+    function vypocetClick(){
+            form = document.getElementById('zadani');
+            startTimer();
+            routeCalculate(form,0);
+    }
+
+    function pokracovatClick(){
+            form = document.getElementById('zadani');
+            startTimer();
+            routeCalculate(form,1);
+    }
+
+    function navazatClick(){
+            form = document.getElementById('zadani');
+            startTimer();
+            routeCalculate(form,2);
+    }
+
+    function zastavitClick(){
+        $.ajax({
+            url: '{% url 'ajax:zastavit' %}',
+            type: 'post',
+            data: {csrfmiddlewaretoken: '{{ csrf_token }}'},
+            success: function(response){
+                startTimer();
+            }
+            })
+
+    }
+
+    function fetchTrasy(){
+            var row = 0;
+            var razeni = Number($('#razeni').val());
+            var start = $("#start").val();
+            var cil = $("#cil").val();
+            var Praha = Number($('#Praha').prop("checked"));
+
+            $.ajax({
+                url: '{% url 'ajax:pocet_tras' %}',
+                type: 'post',
+                data: {Praha:Praha, start:start, cil:cil, csrfmiddlewaretoken: '{{ csrf_token }}'},
+                success: function(response){
+                    $('#all').val(response);
+                }
+            });
+            
+            $('#row').val(row);
+            $.ajax({
+            url: '{% url 'ajax:fetch_trasy' %}',
+            type: 'post',
+            data: {row:row, razeni:razeni, Praha:Praha, start:start, cil:cil, csrfmiddlewaretoken: '{{ csrf_token }}'},
+            success: function(response){
+            $(".trasa tr").slice(1).remove();
+            $(".trasa").append(response).show().fadeIn("slow");
+            }
+            })
+            };
+
+    function routeCalculate(form,nemazat){
+            $.ajax({
+            url: '{% url 'ajax:vypocet_tras' %}',
+            type: 'post',
+            data: {
+                od:form.od.value,
+                cas1:form.cas1.value,
+                cas2:form.cas2.value,
+                visited:$("#selectvisited").val(),
+                tempvisited:$("#selecttempvisited").val(),
+                cil:$("#selectdo").val(),
+                body:form.body.value,
+                km:form.km.value,
+                spanek: (form.spanek.checked ? 1 : 0),
+                mintime1:form.mintime1.value,
+                mintime2:form.mintime2.value,
+                maxtime1:form.maxtime1.value,
+                maxtime2:form.maxtime2.value,
+                kroku:form.kroku.value,
+                koef_unavy:form.koef_unavy.value,
+                uroven:form.uroven.value,
+                kmcelk:form.kmcelk.value,
+                C:form.C.value,
+                temptime:form.temptime.value,
+                metoda:form.metoda.value,
+                limitpocet:form.limitpocet.value,
+                limitvykon:form.limitvykon.value,
+                usepremie: (form.usepremie.checked ? 1 : 0),
+                nemazat: nemazat,
+                spanekod: form.spanekod.value,
+                spanekdo: form.spanekdo.value,
+                kraje:$("#selectkraje").val(),
+                postupka:$("#selectpostupka").val(),
+                consolation: (form.consolation.checked ? 1 : 0),
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response){
+                fetchTrasy();
+                window.location.href="#vysledky";
+            },
+            })
+            };
+
+    function setStart(id,den,cas){
+            $('#od').val(id);
+            $('#od').selectpicker('refresh');
+            document.getElementById('cas1').value=den;
+            document.getElementById('cas2').value=cas;
+    } 
+
+    function startClick(){
+            setStart({{start_id}},'{{starttime|date:'Y-m-d'}}','{{starttime|time:'H:i'}}');
+    }
+
+    function po1Click(){
+            setStart({{praha_id}},'{{prahadates.0|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function ut1Click(){
+            setStart({{praha_id}},'{{prahadates.1|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function st1Click(){
+            setStart({{praha_id}},'{{prahadates.2|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function ct1Click(){
+            setStart({{praha_id}},'{{prahadates.3|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function pa1Click(){
+            setStart({{praha_id}},'{{prahadates.4|date:'Y-m-d'}}','{{prahatimes.0|time:'H:i'}}');
+    }
+
+    function rv1Click(){
+            var cas = document.getElementById('cas2')
+            cas.value = (cas.value == '{{prahatimes.1|time:'H:i'}}') ? '{{prahatimes.0|time:'H:i'}}' : '{{prahatimes.1|time:'H:i'}}'
+    }
+
+    function setCil(id,den1,cas1,den2,cas2){
+            $('#selectdo').val(id);
+            $('#selectdo').selectpicker('refresh');
+            document.getElementById('mintime1').value=den1;
+            document.getElementById('mintime2').value=cas1;
+            document.getElementById('maxtime1').value=den2;
+            document.getElementById('maxtime2').value=cas2;
+    }        
+
+    function cilClick(){
+            setCil({{cil_id}},'{{cil_od|date:'Y-m-d'}}','{{cil_od|time:'H:i'}}','{{cil_do|date:'Y-m-d'}}'
+            ,'{{cil_do|time:'H:i'}}');
+    }
+
+    function po2Click(){
+            setCil({{praha_id}},'{{prahadates.0|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}','{{prahadates.0|date:'Y-m-d'}}'
+            ,'{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function ut2Click(){
+            setCil({{praha_id}},'{{prahadates.1|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}','{{prahadates.1|date:'Y-m-d'}}'
+            ,'{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function st2Click(){
+            setCil({{praha_id}},'{{prahadates.2|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}','{{prahadates.2|date:'Y-m-d'}}'
+            ,'{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function ct2Click(){
+            setCil({{praha_id}},'{{prahadates.3|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}','{{prahadates.3|date:'Y-m-d'}}'
+            ,'{{prahatimes.1|time:'H:i'}}');
+    }
+
+    function pa2Click(){
+            setCil({{praha_id}},'{{prahadates.4|date:'Y-m-d'}}','{{prahatimes.0|time:'H:i'}}','{{prahadates.4|date:'Y-m-d'}}'
+            ,'{{prahatimes.0|time:'H:i'}}');
+    }
+
+    function Praha2Click(){
+            setCil({{praha_id}},'{{prahadates.0|date:'Y-m-d'}}','{{prahatimes.1|time:'H:i'}}','{{prahadates.4|date:'Y-m-d'}}'
+            ,'{{prahatimes.0|time:'H:i'}}');
+    }
+
+    function rv2Click(){
+            var cas1 = document.getElementById('mintime2')
+            var cas2 = document.getElementById('maxtime2')
+            cas1.value = (cas1.value == '{{prahatimes.1|time:'H:i'}}') ? '{{prahatimes.0|time:'H:i'}}' : '{{prahatimes.1|time:'H:i'}}'
+            cas2.value = (cas2.value == '{{prahatimes.1|time:'H:i'}}') ? '{{prahatimes.0|time:'H:i'}}' : '{{prahatimes.1|time:'H:i'}}'
+    }
+</script>
+{% endblock javascript %}

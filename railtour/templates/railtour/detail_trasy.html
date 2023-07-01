@@ -1,0 +1,55 @@
+    <hr>
+        <table>
+            <tr>
+                <th>Příjezd</th>
+                <th>Checkpoint</th>
+                <th>Odjezd</th>
+                <th>Body</th>
+                <th>č</th>
+                <th>k</th>
+                <th>d</th>
+                <th>p</th>
+                <th>ú</th>
+                <th>Km</th>
+                <th>Detail</th>
+            </tr>
+            <tr>
+                <td></td>
+            {% for hrana in hrany %}
+                <td>{{hrana.nazev|slice:":35"}}</td>
+                <td>{{hrana.odjezd|date:"j.n.Y G:i"}}</td>
+                <td>{{hrana.body}}</td>
+                <td>{{hrana.body_premie}}</td>
+                <td>{{hrana.body_kraje}}</td>
+                <td>{{hrana.body_inday}}</td>
+                <td>{{hrana.body_postupka}}</td>
+                <td>{{hrana.body_utecha}}</td>
+                <td>{{hrana.km|floatformat:1}}</td>
+                <td>{% if hrana.id < 10000000 %}
+                    <button type='button' id='btn{{id}}_{{forloop.counter}}' class='btn btn-info'
+                            onclick="showDetail('{{id}}_{{forloop.counter}}',{{hrana.id}},{{unava}})">Detail
+                    </button>
+                    {% elif hrana.id >= 10000000 %}
+                    Přesun
+                    {% else %}
+                    Spánek
+                    {% endif %}
+                </td>
+                <td><div id='detail{{id}}_{{forloop.counter}}'></div></td>
+            </tr>
+            <tr>
+                <td>{{hrana.prijezd|date:"j.n.Y G:i"}}</td>
+            {% endfor %}
+                <td>{{cil|slice:":40"}}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+        </table>
+    <hr>

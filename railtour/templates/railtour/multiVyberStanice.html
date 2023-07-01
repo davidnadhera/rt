@@ -1,0 +1,13 @@
+<select multiple class="form-control selectpicker" title="{{title}}"
+      data-live-search="true" data-selected-text-format="count"
+      id="{{id}}" name="{{name}}" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false"
+      data-live-search-normalize="true">
+   {% for chp in chp_list %}
+       <option class="{{class_}}" id="{{opt_id}}{{chp.point_ptr_id}}" data-tokens="{{chp.assoc_text}}"
+               value="{{chp.point_ptr_id}}" {% if chp.point_ptr_id in selected %}
+                     selected="selected"
+                   {% endif %}>{{chp.name}} ({{chp.point_ptr_id}})</option>
+   {% endfor %}
+</select>

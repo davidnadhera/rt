@@ -1,0 +1,17 @@
+   {% for vysledek in vysledky %}
+            <tr>
+            <td>{{ vysledek.checkpoint }}</td>
+            <td>{{ vysledek.prijezd|date:'j.n.Y G:i' }}</td>
+            <td>{{ vysledek.body }}</td>
+            <td>{{ vysledek.km }}</td>
+            <td>{{ vysledek.vykon }}</td>
+            <td>{{ vysledek.spanek }}</td>
+            <td>{{ vysledek.prvni }}</td>
+            <td>{{ vysledek.druhy }}</td>
+            <td><button type='button' id='btn{{ vysledek.id }}' class='btn btn-info'
+                           onclick='showRoute({{ vysledek.id }})'>Detail</button></td>\n";
+            </tr>
+            <tr>
+            <td colspan='9'><div id='route{{ vysledek.id }}'></div></td>
+            </tr>
+   {% endfor %}

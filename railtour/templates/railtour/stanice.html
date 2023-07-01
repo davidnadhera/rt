@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block title %}
+        Railtour - editace stanic
+{% endblock title%}
+
+{% block content %}
+<div class="container">
+    <ul class="nav nav-tabs" role="tablist">
+    {% for title,index in kraje.items %}
+         <li class="nav-item">
+            <a class="nav-link {% if forloop.first %}
+                                 active
+                               {% endif %}" data-toggle="tab" href="#kraj{{index}}">{{title}}</a>
+         </li>
+    {% endfor %}
+    </ul>
+    <div class="tab-content">
+    {% for index,stanice_index in stanice_list.items %}
+        <div id="kraj{{index}}" class="container tab-pane
+        {% if forloop.first %}
+            active
+        {% else %}
+            fade
+        {% endif %}"><br>
+            <div class='table-responsive'>
+                <table class='class=table'>
+                    <tr>
+                        <th>Checkpoint</th>
+                        <th>Body</th>
+                        <th>Čas do FTF</th>
+                        <th>Čas do STF</th>
+                        <th>Aktivní</th>
+                    </tr>
+                {% for stanice in stanice_index %}
+                    <tr>
+                        <td>{{ stanice.name }}</td>
+                        <td>{{ stanice.points }}</td>
+                        <td><input type='datetime-local' class='dobadata' id='d{{ stanice.id }}' value="{{stanice.bonus1|date:'Y-m-d'}}T{{stanice.bonus1|time:'H:i:s'}}" style='width: 200px;'></td>
+                        <td><input type='datetime-local' class='dobadata2' id='e{{ stanice.id }}' value="{{stanice.bonus2|date:'Y-m-d'}}T{{stanice.bonus2|time:'H:i:s'}}" style='width: 200px;'></td>
+                        <td><input type='checkbox' class='activedata' id='a{{ stanice.id }}' style='width: 100px;'
+                                   {% if stanice.active %}
+                                        checked='checked'
+                                   {% endif %}></td>
+                    </tr>
+                {% endfor %}
+                </table>
+            </div>
+            <button class="btn btn-info" type="button" onclick="window.location.href=\'railtour/stanice/aktu\'">Aktualizovat prémie</button>
+        </div>
+    {% endfor %}
+    </div>
+</div>
+{% endblock content %}
+
+{% block javascript %}
+<script>
+        $(document).ready(function($) {
+          $('.dobadata').on('change', function(){
+            var id = $(this).attr('id').slice(1);
+            var doba = $(this).val();
+            document.body.style.cursor = "wait";
+            $("input").prop("disabled", true);
+            $.ajax({
+               url: '{% url 'ajax:change_doba1' %}',
+               type: 'post',
+               data: {id: id, doba: doba, csrfmiddlewaretoken: '{{ csrf_token }}'},
+               complete: function(response){
+                document.body.style.cursor = "pointer";
+                $("input").prop("disabled", false);
+               }
+              });
+          });
+        });
+        $(document).ready(function($) {
+          $('.dobadata2').on('change', function(){
+            var id = $(this).attr('id').slice(1);
+            var doba = $(this).val();
+            document.body.style.cursor = "wait";
+            $("input").prop("disabled", true);
+            $.ajax({
+               url: '{% url 'ajax:change_doba2' %}',
+               type: 'post',
+               data: {id: id, doba: doba, csrfmiddlewaretoken: '{{ csrf_token }}'},
+               complete: function(response){
+                document.body.style.cursor = "pointer";
+                $("input").prop("disabled", false);
+               }
+              });
+          });
+        });
+        $(document).ready(function($) {
+          $('.activedata').on('click', function(){
+            var id = $(this).attr('id').slice(1);
+            var active = $(this).is(':checked') ? 1 : 0;
+            document.body.style.cursor = "wait";
+            $("input").prop("disabled", true);
+            $.ajax({
+               url: '{% url 'ajax:change_active' %}',
+               type: 'post',
+               data: {id: id, active: active, csrfmiddlewaretoken: '{{ csrf_token }}'},
+               complete: function(response){
+                document.body.style.cursor = "pointer";
+                $("input").prop("disabled", false);
+               }
+              });
+          });
+        });
+</script>
+{% endblock javascript %}

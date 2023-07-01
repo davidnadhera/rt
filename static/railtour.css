@@ -1,0 +1,17 @@
+            td,th {
+              text-align: center;
+              padding: 5px;
+            }
+            td.left {
+              text-align: left;  
+            }
+            table.trasa {
+                width: 100%;
+            }
+            h5 {
+              font-weight: bold;
+            }            
+            body { padding-top: 70px; }
+            @media only screen and (max-width: 600px) {
+               body { padding-top: 170px; }
+            }

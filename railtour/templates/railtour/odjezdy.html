@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+
+{% block title %}
+        Railtour - odjezdy/příjezdy
+{% endblock title%}
+
+{% block content %}
+<div class="container">
+<form action="{% url 'railtour:odjezdy' %}" method="POST">
+    {% csrf_token %}
+    <div class="form-group  col-auto">
+            <label for="od">Odkud</label>
+            {% include 'railtour/vyberStanice.html' with id='od' name='od' selected=od %}
+    </div>
+    <div class="form-group col-auto">
+        <label for="time">Čas</label>
+        <input type="time" class="form-control" id="time" name="cas" value='{{cas|time:"H:i"}}'>
+    </div>
+    <div class="form-group col-auto">
+      <div class="form-check-inline">
+        <label class="form-check-label">
+            <input type="radio" id="odjezd" name="odjezd" value="1" {% if odjezd == 1 %}
+                                 checked="checked"
+                               {% endif %}>
+            Odjezd
+        </label>
+      </div>
+      <div class="form-check-inline ">
+        <label class="form-check-label">
+            <input type="radio" id="prijezd" name="odjezd" value="0" {% if odjezd == 0 %}
+                                 checked="checked"
+                               {% endif %}>
+            Příjezd
+        </label>
+      </div>
+    </div>
+    <div class="form-group col-auto">
+        <label for="razeni">Řazení</label>
+        <select id="razeni" class="form-control" name="razeni">
+                     <option value="1" {% if razeni == 1 %}
+                                 selected="selected"
+                               {% endif %}>podle příjezdu vzestupně</option>
+                     <option value="2" {% if razeni == 2 %}
+                                 selected="selected"
+                               {% endif %}>podle odjezdu vzestupně</option>
+                     <option value="3" {% if razeni == 3 %}
+                                 selected="selected"
+                               {% endif %}>podle příjezdu sestupně</option>
+                     <option value="4" {% if razeni == 4 %}
+                                 selected="selected"
+                               {% endif %}>podle odjezdu sestupně</option>
+                     <option value="5" {% if razeni == 5 %}
+                                 selected="selected"
+                               {% endif %}>podle výkonu 1</option>
+                     <option value="6" {% if razeni == 6 %}
+                                 selected="selected"
+                               {% endif %}>podle výkonu 2</option>
+        </select>
+    </div>
+    <div class="form-group col-auto">
+        <input type="submit" class="btn btn-info" value="Odeslat" />
+    </div>
+</form>
+
+{% if hrany %}
+<hr>
+ <div class='table-responsive'>
+     <table class='class=table'>
+        <tr>
+            <th>Odkud</th>
+            <th>Kam</th>
+            <th>Odjezd</th>
+            <th>Příjezd</th>
+            <th>Doba jízdy</th>
+            <th>Km</th>
+            <th>Výkon 1</th>
+            <th>Výkon 2</th>
+            <th></th>
+        </tr>
+        {% for hrana in hrany %}
+        <tr>
+            <td>{{hrana.point_from|slice:":40"}}</td>
+            <td>{{hrana.point_to|slice:":40"}}</td>
+            <td>{{hrana.time_departure|time:"G:i"}}</td>
+            <td>{{hrana.time_arrival|time:"G:i"}}</td>
+            <td>{{hrana.str_duration}}</td>
+            <td>{{hrana.km|floatformat:1}}</td>
+            <td>{{hrana.profit1|floatformat:2}}</td>
+            <td>{{hrana.profit2|floatformat:2}}</td>
+            {% if hrana.source == 0 %}
+            <td><button type='button' class='btn btn-info' onclick='showDetail({{forloop.counter}},{{hrana.id}})'>Detail</button></td>
+            {% else %}
+            <td>Přesun</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <td colspan="7"><div class='pl-5' id='detail{{forloop.counter}}'></div></td>
+        </tr>
+        {% endfor %}
+     </table>
+ </div>
+{% endif %}
+</div>
+{% endblock content %}

@@ -1,0 +1,2298 @@
+
+
+
+<!DOCTYPE html>
+<html lang="cs-cz">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=0.5">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/css/bootstrap-select.min.css">
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css">
+        <link rel="stylesheet" type="text/css" href="/static/railtour.css">
+        <link rel="shortcut icon" type="image/png" href="/static/favicon.ico"/>
+        <title>
+        Railtour - výpočet tras
+</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap-select@1.13.14/dist/js/bootstrap-select.min.js"></script>
+        <script src="/static/railtour/railtour.js" type="text/javascript"></script>
+        
+<script>
+    $(document).ready(function() {
+ //         $(document).on('load',fetchTrasy);
+
+        $('.selectrazeni').on('change',fetchTrasy);
+        $('#Praha').on('change',fetchTrasy);
+        $('#start').on('change',fetchTrasy);
+        $('#cil').on('change',fetchTrasy);
+
+
+
+
+          $(window).scroll(function(){
+
+            var position = $(window).scrollTop();
+            var dh = document.body.clientHeight; //$(document).height();
+            var wh = window.innerHeight;
+            var bottom = dh - wh;
+
+
+            if( position >= bottom ){
+
+             var row = Number($('#row').val());
+             var cas1 = String($('#cas1').val());
+             var cas2 = String($('#cas2').val());
+             var allcount = Number($('#all').val());
+             var razeni = Number($('#razeni').val());
+             var Praha = Number($('#Praha').prop("checked"));
+             var start = $("#start").val();
+             var cil = $("#cil").val();
+             var rowperpage = 10;
+             row = row + rowperpage;
+
+             if(row <= allcount){
+              $('#row').val(row);
+              $.ajax({
+               url: '/ajax/ajax/fetch_trasy',
+               type: 'post',
+               data: {row:row, razeni:razeni, Praha:Praha, start:start, cil:cil, csrfmiddlewaretoken: 'teu1Zifexjdz3zTu75xcQrk0PbR9WYUQdWUzuki78rcfqZhr2AAKv2psoJCTunsK'},
+               success: function(response){
+                $(".trasa").append(response).show().fadeIn("slow");
+               }
+              });
+             }
+            }
+
+          });
+
+    });
+
+    function startTimer() {
+        if ($("#timer").is(":hidden")) {
+            $("#timer").css("width","0%");
+            $("#timer").parent().show();
+            $("#vyvoj").show();
+            var t=setTimeout(startTimer,1000);
+        } else {
+            $.ajax({
+                url: '/ajax/ajax/iterace',
+                type: 'post',
+                data: {csrfmiddlewaretoken: 'teu1Zifexjdz3zTu75xcQrk0PbR9WYUQdWUzuki78rcfqZhr2AAKv2psoJCTunsK'},
+                success: function(response){
+                    var arr = response.split(";");
+                    if (arr[0]==-1) {
+                    $("#timer").parent().hide();
+                    $("#vyvoj").hide();
+                    clearTimeout(t);
+                    } else {
+                    var metoda = Number($('#metoda').val());;
+                    var cas1 = String($('#cas1').val());
+                    var cas2 = String($('#cas2').val());
+                    var maxtime1 = String($('#maxtime1').val());
+                    var maxtime2 = String($('#maxtime2').val());
+                    var start;
+                    if (cas1 && cas2) {
+                        start = new Date(cas1+" "+cas2);
+                    } else {
+                        start = new Date("2020-08-02 9:00");
+                    }
+                    var cil;
+                    if (maxtime1 && maxtime2) {
+                        cil = new Date(maxtime1+" "+maxtime2);
+                    } else {
+                        cil = new Date("2020-08-06 16:00");
+                    }
+                    var hours = Math.abs(cil-start) / 36e5;
+                    var percent=0;
+                    if (Math.floor(metoda/10)==1) {
+                        percent = arr[0]/hours*100;
+                    } else {
+                        percent=arr[0]/hours*285;
+                    }
+                    $("#timer").css("width",percent+"%");
+                    $("#vyvoj").html("<b>iterace: "+arr[0]+", počet tras: "+arr[1]+"</b>");
+                    var t=setTimeout(startTimer,1000);
+                    }
+                }
+            });
+        }
+
+    }
+
+    function vypocetClick(){
+            form = document.getElementById('zadani');
+            startTimer();
+            routeCalculate(form,0);
+    }
+
+    function pokracovatClick(){
+            form = document.getElementById('zadani');
+            startTimer();
+            routeCalculate(form,1);
+    }
+
+    function navazatClick(){
+            form = document.getElementById('zadani');
+            startTimer();
+            routeCalculate(form,2);
+    }
+
+    function zastavitClick(){
+        $.ajax({
+            url: '/ajax/ajax/zastavit',
+            type: 'post',
+            data: {csrfmiddlewaretoken: 'teu1Zifexjdz3zTu75xcQrk0PbR9WYUQdWUzuki78rcfqZhr2AAKv2psoJCTunsK'},
+            success: function(response){
+                startTimer();
+            }
+            })
+
+    }
+
+    function fetchTrasy(){
+            var row = 0;
+            var razeni = Number($('#razeni').val());
+            var start = $("#start").val();
+            var cil = $("#cil").val();
+            var Praha = Number($('#Praha').prop("checked"));
+
+            $.ajax({
+                url: '/ajax/ajax/pocet_tras',
+                type: 'post',
+                data: {Praha:Praha, start:start, cil:cil, csrfmiddlewaretoken: 'teu1Zifexjdz3zTu75xcQrk0PbR9WYUQdWUzuki78rcfqZhr2AAKv2psoJCTunsK'},
+                success: function(response){
+                    $('#all').val(response);
+                }
+            });
+            
+            $('#row').val(row);
+            $.ajax({
+            url: '/ajax/ajax/fetch_trasy',
+            type: 'post',
+            data: {row:row, razeni:razeni, Praha:Praha, start:start, cil:cil, csrfmiddlewaretoken: 'teu1Zifexjdz3zTu75xcQrk0PbR9WYUQdWUzuki78rcfqZhr2AAKv2psoJCTunsK'},
+            success: function(response){
+            $(".trasa tr").slice(1).remove();
+            $(".trasa").append(response).show().fadeIn("slow");
+            }
+            })
+            };
+
+    function routeCalculate(form,nemazat){
+            $.ajax({
+            url: '/ajax/ajax/vypocet_tras',
+            type: 'post',
+            data: {
+                od:form.od.value,
+                cas1:form.cas1.value,
+                cas2:form.cas2.value,
+                visited:$("#selectvisited").val(),
+                tempvisited:$("#selecttempvisited").val(),
+                cil:$("#selectdo").val(),
+                body:form.body.value,
+                km:form.km.value,
+                spanek: (form.spanek.checked ? 1 : 0),
+                mintime1:form.mintime1.value,
+                mintime2:form.mintime2.value,
+                maxtime1:form.maxtime1.value,
+                maxtime2:form.maxtime2.value,
+                kroku:form.kroku.value,
+                koef_unavy:form.koef_unavy.value,
+                uroven:form.uroven.value,
+                kmcelk:form.kmcelk.value,
+                C:form.C.value,
+                temptime:form.temptime.value,
+                metoda:form.metoda.value,
+                limitpocet:form.limitpocet.value,
+                limitvykon:form.limitvykon.value,
+                usepremie: (form.usepremie.checked ? 1 : 0),
+                nemazat: nemazat,
+                spanekod: form.spanekod.value,
+                spanekdo: form.spanekdo.value,
+                kraje:$("#selectkraje").val(),
+                postupka:$("#selectpostupka").val(),
+                consolation: (form.consolation.checked ? 1 : 0),
+                csrfmiddlewaretoken: 'teu1Zifexjdz3zTu75xcQrk0PbR9WYUQdWUzuki78rcfqZhr2AAKv2psoJCTunsK'
+            },
+            success: function(response){
+                fetchTrasy();
+                window.location.href="#vysledky";
+            },
+            })
+            };
+
+    function setStart(id,den,cas){
+            $('#od').val(id);
+            $('#od').selectpicker('refresh');
+            document.getElementById('cas1').value=den;
+            document.getElementById('cas2').value=cas;
+    } 
+
+    function startClick(){
+            setStart(3333,'','');
+    }
+
+    function po1Click(){
+            setStart(3000,'2023-07-31','20:23:00');
+    }
+
+    function ut1Click(){
+            setStart(3000,'2023-08-01','20:23:00');
+    }
+
+    function st1Click(){
+            setStart(3000,'2023-08-02','20:23:00');
+    }
+
+    function ct1Click(){
+            setStart(3000,'2023-08-03','20:23:00');
+    }
+
+    function pa1Click(){
+            setStart(3000,'2023-08-04','08:23:00');
+    }
+
+    function rv1Click(){
+            var cas = document.getElementById('cas2')
+            cas.value = (cas.value == '20:23:00') ? '08:23:00' : '20:23:00'
+    }
+
+    function setCil(id,den1,cas1,den2,cas2){
+            $('#selectdo').val(id);
+            $('#selectdo').selectpicker('refresh');
+            document.getElementById('mintime1').value=den1;
+            document.getElementById('mintime2').value=cas1;
+            document.getElementById('maxtime1').value=den2;
+            document.getElementById('maxtime2').value=cas2;
+    }        
+
+    function cilClick(){
+            setCil(3334,'2023-08-04','12:00:00','2023-08-04'
+            ,'16:00:00');
+    }
+
+    function po2Click(){
+            setCil(3000,'2023-07-31','20:23:00','2023-07-31'
+            ,'20:23:00');
+    }
+
+    function ut2Click(){
+            setCil(3000,'2023-08-01','20:23:00','2023-08-01'
+            ,'20:23:00');
+    }
+
+    function st2Click(){
+            setCil(3000,'2023-08-02','20:23:00','2023-08-02'
+            ,'20:23:00');
+    }
+
+    function ct2Click(){
+            setCil(3000,'2023-08-03','20:23:00','2023-08-03'
+            ,'20:23:00');
+    }
+
+    function pa2Click(){
+            setCil(3000,'2023-08-04','08:23:00','2023-08-04'
+            ,'08:23:00');
+    }
+
+    function Praha2Click(){
+            setCil(3000,'2023-07-31','20:23:00','2023-08-04'
+            ,'08:23:00');
+    }
+
+    function rv2Click(){
+            var cas1 = document.getElementById('mintime2')
+            var cas2 = document.getElementById('maxtime2')
+            cas1.value = (cas1.value == '20:23:00') ? '08:23:00' : '20:23:00'
+            cas2.value = (cas2.value == '20:23:00') ? '08:23:00' : '20:23:00'
+    }
+</script>
+
+</head>
+<body>
+    <header>
+    <nav class="navbar fixed-top navbar-expand-sm bg-info navbar-dark">
+        <div class="navbar-collapse collapse w-100 order-1 order-md-0 dual-collapse2">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item"><a class="nav-link" href="/railtour/stanice">Editor stanic</a></li>
+                <li class="nav-item"><a class="nav-link" href="/railtour/spojeni">Vyhledat spojení</a></li>
+                <li class="nav-item"><a class="nav-link" href="/railtour/odjezdy">Odjezdy/příjezdy</a></li>
+                <li class="nav-item"><a class="nav-link" href="/railtour/">Výpočet tras</a></li>
+            </ul>
+        </div>
+        <div class="navbar-collapse collapse w-100 order-3 dual-collapse2">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item ml-auto"><a class="nav-link" href='railtour/logout'>Odhlásit</a></li>
+            </ul>
+        </div>
+        <hr>
+    </nav>
+</header>
+
+    
+<div class="container">
+<form id="zadani">
+    <div class="form-group">
+        <label for="od">Odkud
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-light"  onClick="startClick()" />Start - Olomouc</button>
+            <button type="button" class="btn btn-light"  onClick="po1Click()" />Praha - pondělí</button>
+            <button type="button" class="btn btn-light"  onClick="ut1Click()" />Praha - úterý</button>
+            <button type="button" class="btn btn-light"  onClick="st1Click()" />Praha - středa</button>
+            <button type="button" class="btn btn-light"  onClick="ct1Click()" />Praha - čtvrtek</button>
+            <button type="button" class="btn btn-light"  onClick="pa1Click()" />Praha - pátek</button>
+            <button type="button" class="btn btn-light"  onClick="rv1Click()" />ráno / večer</button>
+          </div>
+        </label>
+        <select class="form-control selectpicker" data-dropup-auto="false"
+  data-live-search-normalize="true" data-live-search="true" id="od" name="od">
+   
+       <option data-tokens="Středočeský" value="3000" >Praha – Památník prvního rozhlasového vysílání v ČSR (3000)</option>
+   
+       <option data-tokens="Liberecký" value="3001" >Kumburk – zřícenina (vyhlídková věž) (3001)</option>
+   
+       <option data-tokens="Liberecký" value="3002" >Holany – Ovčí lávka (3002)</option>
+   
+       <option data-tokens="Liberecký" value="3003" >Rovensko pod Troskami – dřevěná zvonice (3003)</option>
+   
+       <option data-tokens="Liberecký" value="3009" >Košťálov – sokolovna (3009)</option>
+   
+       <option data-tokens="Liberecký" value="3018" >Sloup – skalní hrad (rozcestník) (3018)</option>
+   
+       <option data-tokens="Ústecký" value="3023" >Prostřední Žleb – kaple Andělů strážných (3023)</option>
+   
+       <option data-tokens="Ústecký" value="3024" >Tanečnice – rozhledna (3024)</option>
+   
+       <option data-tokens="Ústecký" value="3026" >Peruc – Oldřichův dub (3026)</option>
+   
+       <option data-tokens="Ústecký" value="3027" >Varnsdorf – rozhledna Hrádek (3027)</option>
+   
+       <option data-tokens="Ústecký" value="3033" >Nejsevernější bod ČR (3033)</option>
+   
+       <option data-tokens="Karlovarský" value="3045" >Aš – Goethův památník (3045)</option>
+   
+       <option data-tokens="Karlovarský" value="3046" >Chyše – zámek (3046)</option>
+   
+       <option data-tokens="Karlovarský" value="3050" >Doubrava – skanzen (3050)</option>
+   
+       <option data-tokens="Karlovarský" value="3053" >Pramen Věra (3053)</option>
+   
+       <option data-tokens="Karlovarský" value="3056" >Doubská hora – kaple sv. Nikolaje (3056)</option>
+   
+       <option data-tokens="Plzeňský" value="3061" >Rabí – zřícenina (vstup) (3061)</option>
+   
+       <option data-tokens="Plzeňský" value="3062" >Hrádek – socha chodského psa (3062)</option>
+   
+       <option data-tokens="Plzeňský" value="3066" >Klenová – zřícenina (3066)</option>
+   
+       <option data-tokens="Plzeňský" value="3072" >Hraběcí kříž – vyhlídka (3072)</option>
+   
+       <option data-tokens="Plzeňský" value="3077" >Němčovice – Pařezová chaloupka (3077)</option>
+   
+       <option data-tokens="Jihočeský" value="3082" >Stádlecký řetězový most (3082)</option>
+   
+       <option data-tokens="Jihočeský" value="3089" >Rybník Rožmberk (rozcestník na hrázi) (3089)</option>
+   
+       <option data-tokens="Jihočeský" value="3094" >Libín – rozhledna (3094)</option>
+   
+       <option data-tokens="Jihočeský" value="3099" >Svobodná hora – rozhledna Haniperk (3099)</option>
+   
+       <option data-tokens="Jihočeský" value="3100" >Borotín – zřícenina (3100)</option>
+   
+       <option data-tokens="Středočeský" value="3107" >Vacíkov – lovecký zámeček (3107)</option>
+   
+       <option data-tokens="Středočeský" value="3108" >Neratovice – kamenný nápis MILUJI (3108)</option>
+   
+       <option data-tokens="Středočeský" value="3109" >Kamenný stůl (3109)</option>
+   
+       <option data-tokens="Středočeský" value="3116" >Hostomice – pivovar (3116)</option>
+   
+       <option data-tokens="Středočeský" value="3118" >Skalka – klášter (3118)</option>
+   
+       <option data-tokens="Středočeský" value="3120" >Dobrá Voda – socha sv. Františka (3120)</option>
+   
+       <option data-tokens="Královehradecký" value="3121" >Kuks – hospital (socha alegorie Náboženství) (3121)</option>
+   
+       <option data-tokens="Královehradecký" value="3122" >Babí – socha královny Elišky Rejčky (3122)</option>
+   
+       <option data-tokens="Královehradecký" value="3131" >Heřmánkovice – kostel Všech svatých (3131)</option>
+   
+       <option data-tokens="Královehradecký" value="3137" >Kostelec nad Orlicí – Nový zámek (3137)</option>
+   
+       <option data-tokens="Královehradecký" value="3140" >Opočno – zámek (3140)</option>
+   
+       <option data-tokens="Pardubický" value="3145" >Lázně Bohdaneč – radnice (3145)</option>
+   
+       <option data-tokens="Pardubický" value="3149" >Hvězda – rybník (rozcestník) (3149)</option>
+   
+       <option data-tokens="Pardubický" value="3154" >Žampach – zřícenina (3154)</option>
+   
+       <option data-tokens="Pardubický" value="3158" >Rychmburk – hrad (3158)</option>
+   
+       <option data-tokens="Pardubický" value="3159" >Chvaletice – evangelický kostel (3159)</option>
+   
+       <option data-tokens="Vysočina" value="3163" >Počátky – rodný dům Otokara Březiny (3163)</option>
+   
+       <option data-tokens="Vysočina" value="3164" >Rosička – rozhledna (3164)</option>
+   
+       <option data-tokens="Vysočina" value="3167" >Velké Meziříčí – rozhledna Fajtův kopec (3167)</option>
+   
+       <option data-tokens="Vysočina" value="3169" >Velká Bíteš – opevněný kostel sv. Jana Křtitele (3169)</option>
+   
+       <option data-tokens="Vysočina" value="3170" >Mysliboř – socha Vodní víla (3170)</option>
+   
+       <option data-tokens="Vysočina" value="3174" >Bystřice nad Pernštejnem – Park miniatur (hrad Pernštejn) (3174)</option>
+   
+       <option data-tokens="Jihomoravský Morava" value="3185" >Radošov – rozhledna (3185)</option>
+   
+       <option data-tokens="Jihomoravský Morava" value="3188" >Bohutice – Lurdská jeskyně (3188)</option>
+   
+       <option data-tokens="Jihomoravský Morava" value="3190" >Čejkovice – zámek (3190)</option>
+   
+       <option data-tokens="Jihomoravský Morava" value="3191" >Pernštejn – hrad (vstup) (3191)</option>
+   
+       <option data-tokens="Jihomoravský Morava" value="3194" >Mikulov – zámek (kašna) (3194)</option>
+   
+       <option data-tokens="Jihomoravský Morava" value="3195" >Slavkov u Brna – kaple sv. Urbana (3195)</option>
+   
+       <option data-tokens="Zlínský Morava" value="3203" >Střílky – barokní hřbitov (3203)</option>
+   
+       <option data-tokens="Zlínský Morava" value="3208" >Kunovice – Letecké muzeum (vstup) (3208)</option>
+   
+       <option data-tokens="Zlínský Morava" value="3210" >Zubří – kaple sv. Ducha (3210)</option>
+   
+       <option data-tokens="Zlínský Morava" value="3214" >Vsetín – socha Milník (3214)</option>
+   
+       <option data-tokens="Zlínský Morava" value="3215" >Bojkovice – rozhledna Na Skalce (3215)</option>
+   
+       <option data-tokens="Olomoucký Morava" value="3223" >Litovel – Svatojánský most (3223)</option>
+   
+       <option data-tokens="Olomoucký Morava" value="3224" >Jeskyně Na Špičáku (3224)</option>
+   
+       <option data-tokens="Olomoucký Morava" value="3232" >Biskupská kupa – rozhledna (3232)</option>
+   
+       <option data-tokens="Olomoucký Morava" value="3234" >Lipník nad Bečvou – nábřeží Járy Cimrmana (malba dámy se slunečníkem) (3234)</option>
+   
+       <option data-tokens="Olomoucký Morava" value="3236" >Šternberk – hrad (vstup) (3236)</option>
+   
+       <option data-tokens="Olomoucký Morava" value="3238" >Skalka – minerální prameny (3238)</option>
+   
+       <option data-tokens="Moravskoslezský Morava" value="3242" >Opava – kostel sv. Jana Nepomuckého (3242)</option>
+   
+       <option data-tokens="Moravskoslezský Morava" value="3244" >Dolní Marklovice – dřevěný kostel (3244)</option>
+   
+       <option data-tokens="Moravskoslezský Morava" value="3246" >Chalupki (PL) – Palac Rotszyldów (3246)</option>
+   
+       <option data-tokens="Moravskoslezský Morava" value="3250" >Vikštejn – zřícenina (3250)</option>
+   
+       <option data-tokens="Moravskoslezský Morava" value="3253" >Hodslavice – umělecká vyhlídka Krásověda (3253)</option>
+   
+       <option data-tokens="Moravskoslezský Morava" value="3258" >Bruntál – zámek (vstup) (3258)</option>
+   
+       <option data-tokens="Horská etapa Morava" value="3267" >Godula – památník vydání tolerančního patentu (3267)</option>
+   
+       <option data-tokens="Horská etapa střed Morava" value="3268" >Javorový – vrchol (3268)</option>
+   
+       <option data-tokens="Horská etapa Morava" value="3269" >Malý Javorový – turistická chata (3269)</option>
+   
+       <option data-tokens="Horská etapa" value="3270" >Vodní nádrž Bedřichov – hráz (3270)</option>
+   
+       <option data-tokens="Horská etapa střed" value="3271" >Nová Louka – lovecký zámeček (3271)</option>
+   
+       <option data-tokens="Horská etapa" value="3272" >Hašlerova chata (3272)</option>
+   
+       <option data-tokens="Horská etapa" value="3273" >Žacléř – hornický skanzen (vstup) (3273)</option>
+   
+       <option data-tokens="Horská etapa střed" value="3274" >Horní Albeřice – muzeum Vápenka (3274)</option>
+   
+       <option data-tokens="Horská etapa" value="3275" >Horní Lysečiny – kaple Narození Páně (3275)</option>
+   
+       <option data-tokens="Horská etapa" value="3279" >Velhartice – hrad (vstup) (3279)</option>
+   
+       <option data-tokens="Horská etapa střed" value="3280" >Svinná – kaple sv. Vendelína (3280)</option>
+   
+       <option data-tokens="Horská etapa" value="3281" >Můstek – turistický přístřešek (3281)</option>
+   
+       <option data-tokens="Horská etapa" value="3285" >Cínovec – pomník první zmínky o obci (3285)</option>
+   
+       <option data-tokens="Horská etapa střed" value="3286" >Kohlhaukuppe (DE) – rozhledna (3286)</option>
+   
+       <option data-tokens="Horská etapa" value="3287" >Komáří vížka – rozhledna (3287)</option>
+   
+       <option data-tokens="Horská etapa Morava" value="3288" >Pálavský anděl lásky (3288)</option>
+   
+       <option data-tokens="Horská etapa střed Morava" value="3289" >Děvín – vyhlídka (3289)</option>
+   
+       <option data-tokens="Horská etapa Morava" value="3290" >Dolní Dunajovice – muzeum vinařství (3290)</option>
+   
+       <option data-tokens="Horská etapa Morava" value="3291" >Paprsek – horský hotel (3291)</option>
+   
+       <option data-tokens="Horská etapa střed Morava" value="3292" >Medvědí bouda – rozcestník (3292)</option>
+   
+       <option data-tokens="Horská etapa Morava" value="3293" >Kladské sedlo – rozcestník (3293)</option>
+   
+       <option data-tokens="None" value="3333" 
+                     selected="selected"
+                   >Olomouc - start (3333)</option>
+   
+       <option data-tokens="None" value="3334" >Olomouc - cíl (3334)</option>
+   
+</select>
+    </div>
+    <div class="form-row form-group ">
+      <div class="col">
+          <label for="cas1">Start - Datum</label>
+          <input type="date" class="form-control" id="cas1" name="cas1" value='2023-07-31'>
+      </div>
+      <div class="col">
+          <label for="cas2">Čas</label>
+          <input type="time" class="form-control" id="cas2" name="cas2" value='09:00'>
+      </div>
+    </div>
+    <div class="form-group">
+        <label for="selectdo">Kam
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-light"  onClick="cilClick()" />Cíl - Olomouc</button>
+            <button type="button" class="btn btn-light"  onClick="po2Click()" />Praha - pondělí</button>
+            <button type="button" class="btn btn-light"  onClick="ut2Click()" />Praha - úterý</button>
+            <button type="button" class="btn btn-light"  onClick="st2Click()" />Praha - středa</button>
+            <button type="button" class="btn btn-light"  onClick="ct2Click()" />Praha - čtvrtek</button>
+            <button type="button" class="btn btn-light"  onClick="pa2Click()" />Praha - pátek</button>
+            <button type="button" class="btn btn-light"  onClick="Praha2Click()" />Praha - kdykoliv</button>
+            <button type="button" class="btn btn-light"  onClick="rv2Click()" />ráno / večer</button>
+          </div>
+        </label>
+        <select multiple class="form-control selectpicker" title="libovolný cíl"
+      data-live-search="true" data-selected-text-format="count"
+      id="selectdo" name="do[]" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false"
+      data-live-search-normalize="true">
+   
+       <option class="chbdo" id="chbd3000" data-tokens="Středočeský"
+               value="3000" >Praha – Památník prvního rozhlasového vysílání v ČSR (3000)</option>
+   
+       <option class="chbdo" id="chbd3001" data-tokens="Liberecký"
+               value="3001" >Kumburk – zřícenina (vyhlídková věž) (3001)</option>
+   
+       <option class="chbdo" id="chbd3002" data-tokens="Liberecký"
+               value="3002" >Holany – Ovčí lávka (3002)</option>
+   
+       <option class="chbdo" id="chbd3003" data-tokens="Liberecký"
+               value="3003" >Rovensko pod Troskami – dřevěná zvonice (3003)</option>
+   
+       <option class="chbdo" id="chbd3009" data-tokens="Liberecký"
+               value="3009" >Košťálov – sokolovna (3009)</option>
+   
+       <option class="chbdo" id="chbd3018" data-tokens="Liberecký"
+               value="3018" >Sloup – skalní hrad (rozcestník) (3018)</option>
+   
+       <option class="chbdo" id="chbd3023" data-tokens="Ústecký"
+               value="3023" >Prostřední Žleb – kaple Andělů strážných (3023)</option>
+   
+       <option class="chbdo" id="chbd3024" data-tokens="Ústecký"
+               value="3024" >Tanečnice – rozhledna (3024)</option>
+   
+       <option class="chbdo" id="chbd3026" data-tokens="Ústecký"
+               value="3026" >Peruc – Oldřichův dub (3026)</option>
+   
+       <option class="chbdo" id="chbd3027" data-tokens="Ústecký"
+               value="3027" >Varnsdorf – rozhledna Hrádek (3027)</option>
+   
+       <option class="chbdo" id="chbd3033" data-tokens="Ústecký"
+               value="3033" >Nejsevernější bod ČR (3033)</option>
+   
+       <option class="chbdo" id="chbd3045" data-tokens="Karlovarský"
+               value="3045" >Aš – Goethův památník (3045)</option>
+   
+       <option class="chbdo" id="chbd3046" data-tokens="Karlovarský"
+               value="3046" >Chyše – zámek (3046)</option>
+   
+       <option class="chbdo" id="chbd3050" data-tokens="Karlovarský"
+               value="3050" >Doubrava – skanzen (3050)</option>
+   
+       <option class="chbdo" id="chbd3053" data-tokens="Karlovarský"
+               value="3053" >Pramen Věra (3053)</option>
+   
+       <option class="chbdo" id="chbd3056" data-tokens="Karlovarský"
+               value="3056" >Doubská hora – kaple sv. Nikolaje (3056)</option>
+   
+       <option class="chbdo" id="chbd3061" data-tokens="Plzeňský"
+               value="3061" >Rabí – zřícenina (vstup) (3061)</option>
+   
+       <option class="chbdo" id="chbd3062" data-tokens="Plzeňský"
+               value="3062" >Hrádek – socha chodského psa (3062)</option>
+   
+       <option class="chbdo" id="chbd3066" data-tokens="Plzeňský"
+               value="3066" >Klenová – zřícenina (3066)</option>
+   
+       <option class="chbdo" id="chbd3072" data-tokens="Plzeňský"
+               value="3072" >Hraběcí kříž – vyhlídka (3072)</option>
+   
+       <option class="chbdo" id="chbd3077" data-tokens="Plzeňský"
+               value="3077" >Němčovice – Pařezová chaloupka (3077)</option>
+   
+       <option class="chbdo" id="chbd3082" data-tokens="Jihočeský"
+               value="3082" >Stádlecký řetězový most (3082)</option>
+   
+       <option class="chbdo" id="chbd3089" data-tokens="Jihočeský"
+               value="3089" >Rybník Rožmberk (rozcestník na hrázi) (3089)</option>
+   
+       <option class="chbdo" id="chbd3094" data-tokens="Jihočeský"
+               value="3094" >Libín – rozhledna (3094)</option>
+   
+       <option class="chbdo" id="chbd3099" data-tokens="Jihočeský"
+               value="3099" >Svobodná hora – rozhledna Haniperk (3099)</option>
+   
+       <option class="chbdo" id="chbd3100" data-tokens="Jihočeský"
+               value="3100" >Borotín – zřícenina (3100)</option>
+   
+       <option class="chbdo" id="chbd3107" data-tokens="Středočeský"
+               value="3107" >Vacíkov – lovecký zámeček (3107)</option>
+   
+       <option class="chbdo" id="chbd3108" data-tokens="Středočeský"
+               value="3108" >Neratovice – kamenný nápis MILUJI (3108)</option>
+   
+       <option class="chbdo" id="chbd3109" data-tokens="Středočeský"
+               value="3109" >Kamenný stůl (3109)</option>
+   
+       <option class="chbdo" id="chbd3116" data-tokens="Středočeský"
+               value="3116" >Hostomice – pivovar (3116)</option>
+   
+       <option class="chbdo" id="chbd3118" data-tokens="Středočeský"
+               value="3118" >Skalka – klášter (3118)</option>
+   
+       <option class="chbdo" id="chbd3120" data-tokens="Středočeský"
+               value="3120" >Dobrá Voda – socha sv. Františka (3120)</option>
+   
+       <option class="chbdo" id="chbd3121" data-tokens="Královehradecký"
+               value="3121" >Kuks – hospital (socha alegorie Náboženství) (3121)</option>
+   
+       <option class="chbdo" id="chbd3122" data-tokens="Královehradecký"
+               value="3122" >Babí – socha královny Elišky Rejčky (3122)</option>
+   
+       <option class="chbdo" id="chbd3131" data-tokens="Královehradecký"
+               value="3131" >Heřmánkovice – kostel Všech svatých (3131)</option>
+   
+       <option class="chbdo" id="chbd3137" data-tokens="Královehradecký"
+               value="3137" >Kostelec nad Orlicí – Nový zámek (3137)</option>
+   
+       <option class="chbdo" id="chbd3140" data-tokens="Královehradecký"
+               value="3140" >Opočno – zámek (3140)</option>
+   
+       <option class="chbdo" id="chbd3145" data-tokens="Pardubický"
+               value="3145" >Lázně Bohdaneč – radnice (3145)</option>
+   
+       <option class="chbdo" id="chbd3149" data-tokens="Pardubický"
+               value="3149" >Hvězda – rybník (rozcestník) (3149)</option>
+   
+       <option class="chbdo" id="chbd3154" data-tokens="Pardubický"
+               value="3154" >Žampach – zřícenina (3154)</option>
+   
+       <option class="chbdo" id="chbd3158" data-tokens="Pardubický"
+               value="3158" >Rychmburk – hrad (3158)</option>
+   
+       <option class="chbdo" id="chbd3159" data-tokens="Pardubický"
+               value="3159" >Chvaletice – evangelický kostel (3159)</option>
+   
+       <option class="chbdo" id="chbd3163" data-tokens="Vysočina"
+               value="3163" >Počátky – rodný dům Otokara Březiny (3163)</option>
+   
+       <option class="chbdo" id="chbd3164" data-tokens="Vysočina"
+               value="3164" >Rosička – rozhledna (3164)</option>
+   
+       <option class="chbdo" id="chbd3167" data-tokens="Vysočina"
+               value="3167" >Velké Meziříčí – rozhledna Fajtův kopec (3167)</option>
+   
+       <option class="chbdo" id="chbd3169" data-tokens="Vysočina"
+               value="3169" >Velká Bíteš – opevněný kostel sv. Jana Křtitele (3169)</option>
+   
+       <option class="chbdo" id="chbd3170" data-tokens="Vysočina"
+               value="3170" >Mysliboř – socha Vodní víla (3170)</option>
+   
+       <option class="chbdo" id="chbd3174" data-tokens="Vysočina"
+               value="3174" >Bystřice nad Pernštejnem – Park miniatur (hrad Pernštejn) (3174)</option>
+   
+       <option class="chbdo" id="chbd3185" data-tokens="Jihomoravský Morava"
+               value="3185" >Radošov – rozhledna (3185)</option>
+   
+       <option class="chbdo" id="chbd3188" data-tokens="Jihomoravský Morava"
+               value="3188" >Bohutice – Lurdská jeskyně (3188)</option>
+   
+       <option class="chbdo" id="chbd3190" data-tokens="Jihomoravský Morava"
+               value="3190" >Čejkovice – zámek (3190)</option>
+   
+       <option class="chbdo" id="chbd3191" data-tokens="Jihomoravský Morava"
+               value="3191" >Pernštejn – hrad (vstup) (3191)</option>
+   
+       <option class="chbdo" id="chbd3194" data-tokens="Jihomoravský Morava"
+               value="3194" >Mikulov – zámek (kašna) (3194)</option>
+   
+       <option class="chbdo" id="chbd3195" data-tokens="Jihomoravský Morava"
+               value="3195" >Slavkov u Brna – kaple sv. Urbana (3195)</option>
+   
+       <option class="chbdo" id="chbd3203" data-tokens="Zlínský Morava"
+               value="3203" >Střílky – barokní hřbitov (3203)</option>
+   
+       <option class="chbdo" id="chbd3208" data-tokens="Zlínský Morava"
+               value="3208" >Kunovice – Letecké muzeum (vstup) (3208)</option>
+   
+       <option class="chbdo" id="chbd3210" data-tokens="Zlínský Morava"
+               value="3210" >Zubří – kaple sv. Ducha (3210)</option>
+   
+       <option class="chbdo" id="chbd3214" data-tokens="Zlínský Morava"
+               value="3214" >Vsetín – socha Milník (3214)</option>
+   
+       <option class="chbdo" id="chbd3215" data-tokens="Zlínský Morava"
+               value="3215" >Bojkovice – rozhledna Na Skalce (3215)</option>
+   
+       <option class="chbdo" id="chbd3223" data-tokens="Olomoucký Morava"
+               value="3223" >Litovel – Svatojánský most (3223)</option>
+   
+       <option class="chbdo" id="chbd3224" data-tokens="Olomoucký Morava"
+               value="3224" >Jeskyně Na Špičáku (3224)</option>
+   
+       <option class="chbdo" id="chbd3232" data-tokens="Olomoucký Morava"
+               value="3232" >Biskupská kupa – rozhledna (3232)</option>
+   
+       <option class="chbdo" id="chbd3234" data-tokens="Olomoucký Morava"
+               value="3234" >Lipník nad Bečvou – nábřeží Járy Cimrmana (malba dámy se slunečníkem) (3234)</option>
+   
+       <option class="chbdo" id="chbd3236" data-tokens="Olomoucký Morava"
+               value="3236" >Šternberk – hrad (vstup) (3236)</option>
+   
+       <option class="chbdo" id="chbd3238" data-tokens="Olomoucký Morava"
+               value="3238" >Skalka – minerální prameny (3238)</option>
+   
+       <option class="chbdo" id="chbd3242" data-tokens="Moravskoslezský Morava"
+               value="3242" >Opava – kostel sv. Jana Nepomuckého (3242)</option>
+   
+       <option class="chbdo" id="chbd3244" data-tokens="Moravskoslezský Morava"
+               value="3244" >Dolní Marklovice – dřevěný kostel (3244)</option>
+   
+       <option class="chbdo" id="chbd3246" data-tokens="Moravskoslezský Morava"
+               value="3246" >Chalupki (PL) – Palac Rotszyldów (3246)</option>
+   
+       <option class="chbdo" id="chbd3250" data-tokens="Moravskoslezský Morava"
+               value="3250" >Vikštejn – zřícenina (3250)</option>
+   
+       <option class="chbdo" id="chbd3253" data-tokens="Moravskoslezský Morava"
+               value="3253" >Hodslavice – umělecká vyhlídka Krásověda (3253)</option>
+   
+       <option class="chbdo" id="chbd3258" data-tokens="Moravskoslezský Morava"
+               value="3258" >Bruntál – zámek (vstup) (3258)</option>
+   
+       <option class="chbdo" id="chbd3267" data-tokens="Horská etapa Morava"
+               value="3267" >Godula – památník vydání tolerančního patentu (3267)</option>
+   
+       <option class="chbdo" id="chbd3268" data-tokens="Horská etapa střed Morava"
+               value="3268" >Javorový – vrchol (3268)</option>
+   
+       <option class="chbdo" id="chbd3269" data-tokens="Horská etapa Morava"
+               value="3269" >Malý Javorový – turistická chata (3269)</option>
+   
+       <option class="chbdo" id="chbd3270" data-tokens="Horská etapa"
+               value="3270" >Vodní nádrž Bedřichov – hráz (3270)</option>
+   
+       <option class="chbdo" id="chbd3271" data-tokens="Horská etapa střed"
+               value="3271" >Nová Louka – lovecký zámeček (3271)</option>
+   
+       <option class="chbdo" id="chbd3272" data-tokens="Horská etapa"
+               value="3272" >Hašlerova chata (3272)</option>
+   
+       <option class="chbdo" id="chbd3273" data-tokens="Horská etapa"
+               value="3273" >Žacléř – hornický skanzen (vstup) (3273)</option>
+   
+       <option class="chbdo" id="chbd3274" data-tokens="Horská etapa střed"
+               value="3274" >Horní Albeřice – muzeum Vápenka (3274)</option>
+   
+       <option class="chbdo" id="chbd3275" data-tokens="Horská etapa"
+               value="3275" >Horní Lysečiny – kaple Narození Páně (3275)</option>
+   
+       <option class="chbdo" id="chbd3279" data-tokens="Horská etapa"
+               value="3279" >Velhartice – hrad (vstup) (3279)</option>
+   
+       <option class="chbdo" id="chbd3280" data-tokens="Horská etapa střed"
+               value="3280" >Svinná – kaple sv. Vendelína (3280)</option>
+   
+       <option class="chbdo" id="chbd3281" data-tokens="Horská etapa"
+               value="3281" >Můstek – turistický přístřešek (3281)</option>
+   
+       <option class="chbdo" id="chbd3285" data-tokens="Horská etapa"
+               value="3285" >Cínovec – pomník první zmínky o obci (3285)</option>
+   
+       <option class="chbdo" id="chbd3286" data-tokens="Horská etapa střed"
+               value="3286" >Kohlhaukuppe (DE) – rozhledna (3286)</option>
+   
+       <option class="chbdo" id="chbd3287" data-tokens="Horská etapa"
+               value="3287" >Komáří vížka – rozhledna (3287)</option>
+   
+       <option class="chbdo" id="chbd3288" data-tokens="Horská etapa Morava"
+               value="3288" >Pálavský anděl lásky (3288)</option>
+   
+       <option class="chbdo" id="chbd3289" data-tokens="Horská etapa střed Morava"
+               value="3289" >Děvín – vyhlídka (3289)</option>
+   
+       <option class="chbdo" id="chbd3290" data-tokens="Horská etapa Morava"
+               value="3290" >Dolní Dunajovice – muzeum vinařství (3290)</option>
+   
+       <option class="chbdo" id="chbd3291" data-tokens="Horská etapa Morava"
+               value="3291" >Paprsek – horský hotel (3291)</option>
+   
+       <option class="chbdo" id="chbd3292" data-tokens="Horská etapa střed Morava"
+               value="3292" >Medvědí bouda – rozcestník (3292)</option>
+   
+       <option class="chbdo" id="chbd3293" data-tokens="Horská etapa Morava"
+               value="3293" >Kladské sedlo – rozcestník (3293)</option>
+   
+       <option class="chbdo" id="chbd3333" data-tokens="None"
+               value="3333" >Olomouc - start (3333)</option>
+   
+       <option class="chbdo" id="chbd3334" data-tokens="None"
+               value="3334" 
+                     selected="selected"
+                   >Olomouc - cíl (3334)</option>
+   
+</select>
+    </div>
+    <div class="form-row form-group ">
+      <div class="col">
+          <label for="mintime1">Cíl - od - Datum</label>
+          <input type="date" class="form-control" id="mintime1" name="mintime1" value='2023-08-04'>
+      </div>
+      <div class="col">
+          <label for="mintime2">Čas</label>
+          <input type="time" class="form-control" id="mintime2" name="mintime2" value='12:00'>
+      </div>
+      <div class="col">
+          <label for="maxtime1">do - Datum</label>
+          <input type="date" class="form-control" id="maxtime1" name="maxtime1" value='2023-08-04'>
+      </div>
+      <div class="col">
+          <label for="maxtime2">Čas</label>
+          <input type="time" class="form-control" id="maxtime2" name="maxtime2" value='16:00'>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="selectvisited">Navštívené checkpointy</label>
+      <select multiple class="form-control selectpicker" title="žádné nevybrány"
+      data-live-search="true" data-selected-text-format="count"
+      id="selectvisited" name="visited[]" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false"
+      data-live-search-normalize="true">
+   
+       <option class="chbvisited" id="chb3000" data-tokens="Středočeský"
+               value="3000" >Praha – Památník prvního rozhlasového vysílání v ČSR (3000)</option>
+   
+       <option class="chbvisited" id="chb3001" data-tokens="Liberecký"
+               value="3001" >Kumburk – zřícenina (vyhlídková věž) (3001)</option>
+   
+       <option class="chbvisited" id="chb3002" data-tokens="Liberecký"
+               value="3002" >Holany – Ovčí lávka (3002)</option>
+   
+       <option class="chbvisited" id="chb3003" data-tokens="Liberecký"
+               value="3003" >Rovensko pod Troskami – dřevěná zvonice (3003)</option>
+   
+       <option class="chbvisited" id="chb3009" data-tokens="Liberecký"
+               value="3009" >Košťálov – sokolovna (3009)</option>
+   
+       <option class="chbvisited" id="chb3018" data-tokens="Liberecký"
+               value="3018" >Sloup – skalní hrad (rozcestník) (3018)</option>
+   
+       <option class="chbvisited" id="chb3023" data-tokens="Ústecký"
+               value="3023" >Prostřední Žleb – kaple Andělů strážných (3023)</option>
+   
+       <option class="chbvisited" id="chb3024" data-tokens="Ústecký"
+               value="3024" >Tanečnice – rozhledna (3024)</option>
+   
+       <option class="chbvisited" id="chb3026" data-tokens="Ústecký"
+               value="3026" >Peruc – Oldřichův dub (3026)</option>
+   
+       <option class="chbvisited" id="chb3027" data-tokens="Ústecký"
+               value="3027" >Varnsdorf – rozhledna Hrádek (3027)</option>
+   
+       <option class="chbvisited" id="chb3033" data-tokens="Ústecký"
+               value="3033" >Nejsevernější bod ČR (3033)</option>
+   
+       <option class="chbvisited" id="chb3045" data-tokens="Karlovarský"
+               value="3045" >Aš – Goethův památník (3045)</option>
+   
+       <option class="chbvisited" id="chb3046" data-tokens="Karlovarský"
+               value="3046" >Chyše – zámek (3046)</option>
+   
+       <option class="chbvisited" id="chb3050" data-tokens="Karlovarský"
+               value="3050" >Doubrava – skanzen (3050)</option>
+   
+       <option class="chbvisited" id="chb3053" data-tokens="Karlovarský"
+               value="3053" >Pramen Věra (3053)</option>
+   
+       <option class="chbvisited" id="chb3056" data-tokens="Karlovarský"
+               value="3056" >Doubská hora – kaple sv. Nikolaje (3056)</option>
+   
+       <option class="chbvisited" id="chb3061" data-tokens="Plzeňský"
+               value="3061" >Rabí – zřícenina (vstup) (3061)</option>
+   
+       <option class="chbvisited" id="chb3062" data-tokens="Plzeňský"
+               value="3062" >Hrádek – socha chodského psa (3062)</option>
+   
+       <option class="chbvisited" id="chb3066" data-tokens="Plzeňský"
+               value="3066" >Klenová – zřícenina (3066)</option>
+   
+       <option class="chbvisited" id="chb3072" data-tokens="Plzeňský"
+               value="3072" >Hraběcí kříž – vyhlídka (3072)</option>
+   
+       <option class="chbvisited" id="chb3077" data-tokens="Plzeňský"
+               value="3077" >Němčovice – Pařezová chaloupka (3077)</option>
+   
+       <option class="chbvisited" id="chb3082" data-tokens="Jihočeský"
+               value="3082" >Stádlecký řetězový most (3082)</option>
+   
+       <option class="chbvisited" id="chb3089" data-tokens="Jihočeský"
+               value="3089" >Rybník Rožmberk (rozcestník na hrázi) (3089)</option>
+   
+       <option class="chbvisited" id="chb3094" data-tokens="Jihočeský"
+               value="3094" >Libín – rozhledna (3094)</option>
+   
+       <option class="chbvisited" id="chb3099" data-tokens="Jihočeský"
+               value="3099" >Svobodná hora – rozhledna Haniperk (3099)</option>
+   
+       <option class="chbvisited" id="chb3100" data-tokens="Jihočeský"
+               value="3100" >Borotín – zřícenina (3100)</option>
+   
+       <option class="chbvisited" id="chb3107" data-tokens="Středočeský"
+               value="3107" >Vacíkov – lovecký zámeček (3107)</option>
+   
+       <option class="chbvisited" id="chb3108" data-tokens="Středočeský"
+               value="3108" >Neratovice – kamenný nápis MILUJI (3108)</option>
+   
+       <option class="chbvisited" id="chb3109" data-tokens="Středočeský"
+               value="3109" >Kamenný stůl (3109)</option>
+   
+       <option class="chbvisited" id="chb3116" data-tokens="Středočeský"
+               value="3116" >Hostomice – pivovar (3116)</option>
+   
+       <option class="chbvisited" id="chb3118" data-tokens="Středočeský"
+               value="3118" >Skalka – klášter (3118)</option>
+   
+       <option class="chbvisited" id="chb3120" data-tokens="Středočeský"
+               value="3120" >Dobrá Voda – socha sv. Františka (3120)</option>
+   
+       <option class="chbvisited" id="chb3121" data-tokens="Královehradecký"
+               value="3121" >Kuks – hospital (socha alegorie Náboženství) (3121)</option>
+   
+       <option class="chbvisited" id="chb3122" data-tokens="Královehradecký"
+               value="3122" >Babí – socha královny Elišky Rejčky (3122)</option>
+   
+       <option class="chbvisited" id="chb3131" data-tokens="Královehradecký"
+               value="3131" >Heřmánkovice – kostel Všech svatých (3131)</option>
+   
+       <option class="chbvisited" id="chb3137" data-tokens="Královehradecký"
+               value="3137" >Kostelec nad Orlicí – Nový zámek (3137)</option>
+   
+       <option class="chbvisited" id="chb3140" data-tokens="Královehradecký"
+               value="3140" >Opočno – zámek (3140)</option>
+   
+       <option class="chbvisited" id="chb3145" data-tokens="Pardubický"
+               value="3145" >Lázně Bohdaneč – radnice (3145)</option>
+   
+       <option class="chbvisited" id="chb3149" data-tokens="Pardubický"
+               value="3149" >Hvězda – rybník (rozcestník) (3149)</option>
+   
+       <option class="chbvisited" id="chb3154" data-tokens="Pardubický"
+               value="3154" >Žampach – zřícenina (3154)</option>
+   
+       <option class="chbvisited" id="chb3158" data-tokens="Pardubický"
+               value="3158" >Rychmburk – hrad (3158)</option>
+   
+       <option class="chbvisited" id="chb3159" data-tokens="Pardubický"
+               value="3159" >Chvaletice – evangelický kostel (3159)</option>
+   
+       <option class="chbvisited" id="chb3163" data-tokens="Vysočina"
+               value="3163" >Počátky – rodný dům Otokara Březiny (3163)</option>
+   
+       <option class="chbvisited" id="chb3164" data-tokens="Vysočina"
+               value="3164" >Rosička – rozhledna (3164)</option>
+   
+       <option class="chbvisited" id="chb3167" data-tokens="Vysočina"
+               value="3167" >Velké Meziříčí – rozhledna Fajtův kopec (3167)</option>
+   
+       <option class="chbvisited" id="chb3169" data-tokens="Vysočina"
+               value="3169" >Velká Bíteš – opevněný kostel sv. Jana Křtitele (3169)</option>
+   
+       <option class="chbvisited" id="chb3170" data-tokens="Vysočina"
+               value="3170" >Mysliboř – socha Vodní víla (3170)</option>
+   
+       <option class="chbvisited" id="chb3174" data-tokens="Vysočina"
+               value="3174" >Bystřice nad Pernštejnem – Park miniatur (hrad Pernštejn) (3174)</option>
+   
+       <option class="chbvisited" id="chb3185" data-tokens="Jihomoravský Morava"
+               value="3185" >Radošov – rozhledna (3185)</option>
+   
+       <option class="chbvisited" id="chb3188" data-tokens="Jihomoravský Morava"
+               value="3188" >Bohutice – Lurdská jeskyně (3188)</option>
+   
+       <option class="chbvisited" id="chb3190" data-tokens="Jihomoravský Morava"
+               value="3190" >Čejkovice – zámek (3190)</option>
+   
+       <option class="chbvisited" id="chb3191" data-tokens="Jihomoravský Morava"
+               value="3191" >Pernštejn – hrad (vstup) (3191)</option>
+   
+       <option class="chbvisited" id="chb3194" data-tokens="Jihomoravský Morava"
+               value="3194" >Mikulov – zámek (kašna) (3194)</option>
+   
+       <option class="chbvisited" id="chb3195" data-tokens="Jihomoravský Morava"
+               value="3195" >Slavkov u Brna – kaple sv. Urbana (3195)</option>
+   
+       <option class="chbvisited" id="chb3203" data-tokens="Zlínský Morava"
+               value="3203" >Střílky – barokní hřbitov (3203)</option>
+   
+       <option class="chbvisited" id="chb3208" data-tokens="Zlínský Morava"
+               value="3208" >Kunovice – Letecké muzeum (vstup) (3208)</option>
+   
+       <option class="chbvisited" id="chb3210" data-tokens="Zlínský Morava"
+               value="3210" >Zubří – kaple sv. Ducha (3210)</option>
+   
+       <option class="chbvisited" id="chb3214" data-tokens="Zlínský Morava"
+               value="3214" >Vsetín – socha Milník (3214)</option>
+   
+       <option class="chbvisited" id="chb3215" data-tokens="Zlínský Morava"
+               value="3215" >Bojkovice – rozhledna Na Skalce (3215)</option>
+   
+       <option class="chbvisited" id="chb3223" data-tokens="Olomoucký Morava"
+               value="3223" >Litovel – Svatojánský most (3223)</option>
+   
+       <option class="chbvisited" id="chb3224" data-tokens="Olomoucký Morava"
+               value="3224" >Jeskyně Na Špičáku (3224)</option>
+   
+       <option class="chbvisited" id="chb3232" data-tokens="Olomoucký Morava"
+               value="3232" >Biskupská kupa – rozhledna (3232)</option>
+   
+       <option class="chbvisited" id="chb3234" data-tokens="Olomoucký Morava"
+               value="3234" >Lipník nad Bečvou – nábřeží Járy Cimrmana (malba dámy se slunečníkem) (3234)</option>
+   
+       <option class="chbvisited" id="chb3236" data-tokens="Olomoucký Morava"
+               value="3236" >Šternberk – hrad (vstup) (3236)</option>
+   
+       <option class="chbvisited" id="chb3238" data-tokens="Olomoucký Morava"
+               value="3238" >Skalka – minerální prameny (3238)</option>
+   
+       <option class="chbvisited" id="chb3242" data-tokens="Moravskoslezský Morava"
+               value="3242" >Opava – kostel sv. Jana Nepomuckého (3242)</option>
+   
+       <option class="chbvisited" id="chb3244" data-tokens="Moravskoslezský Morava"
+               value="3244" >Dolní Marklovice – dřevěný kostel (3244)</option>
+   
+       <option class="chbvisited" id="chb3246" data-tokens="Moravskoslezský Morava"
+               value="3246" >Chalupki (PL) – Palac Rotszyldów (3246)</option>
+   
+       <option class="chbvisited" id="chb3250" data-tokens="Moravskoslezský Morava"
+               value="3250" >Vikštejn – zřícenina (3250)</option>
+   
+       <option class="chbvisited" id="chb3253" data-tokens="Moravskoslezský Morava"
+               value="3253" >Hodslavice – umělecká vyhlídka Krásověda (3253)</option>
+   
+       <option class="chbvisited" id="chb3258" data-tokens="Moravskoslezský Morava"
+               value="3258" >Bruntál – zámek (vstup) (3258)</option>
+   
+       <option class="chbvisited" id="chb3267" data-tokens="Horská etapa Morava"
+               value="3267" >Godula – památník vydání tolerančního patentu (3267)</option>
+   
+       <option class="chbvisited" id="chb3268" data-tokens="Horská etapa střed Morava"
+               value="3268" >Javorový – vrchol (3268)</option>
+   
+       <option class="chbvisited" id="chb3269" data-tokens="Horská etapa Morava"
+               value="3269" >Malý Javorový – turistická chata (3269)</option>
+   
+       <option class="chbvisited" id="chb3270" data-tokens="Horská etapa"
+               value="3270" >Vodní nádrž Bedřichov – hráz (3270)</option>
+   
+       <option class="chbvisited" id="chb3271" data-tokens="Horská etapa střed"
+               value="3271" >Nová Louka – lovecký zámeček (3271)</option>
+   
+       <option class="chbvisited" id="chb3272" data-tokens="Horská etapa"
+               value="3272" >Hašlerova chata (3272)</option>
+   
+       <option class="chbvisited" id="chb3273" data-tokens="Horská etapa"
+               value="3273" >Žacléř – hornický skanzen (vstup) (3273)</option>
+   
+       <option class="chbvisited" id="chb3274" data-tokens="Horská etapa střed"
+               value="3274" >Horní Albeřice – muzeum Vápenka (3274)</option>
+   
+       <option class="chbvisited" id="chb3275" data-tokens="Horská etapa"
+               value="3275" >Horní Lysečiny – kaple Narození Páně (3275)</option>
+   
+       <option class="chbvisited" id="chb3279" data-tokens="Horská etapa"
+               value="3279" >Velhartice – hrad (vstup) (3279)</option>
+   
+       <option class="chbvisited" id="chb3280" data-tokens="Horská etapa střed"
+               value="3280" >Svinná – kaple sv. Vendelína (3280)</option>
+   
+       <option class="chbvisited" id="chb3281" data-tokens="Horská etapa"
+               value="3281" >Můstek – turistický přístřešek (3281)</option>
+   
+       <option class="chbvisited" id="chb3285" data-tokens="Horská etapa"
+               value="3285" >Cínovec – pomník první zmínky o obci (3285)</option>
+   
+       <option class="chbvisited" id="chb3286" data-tokens="Horská etapa střed"
+               value="3286" >Kohlhaukuppe (DE) – rozhledna (3286)</option>
+   
+       <option class="chbvisited" id="chb3287" data-tokens="Horská etapa"
+               value="3287" >Komáří vížka – rozhledna (3287)</option>
+   
+       <option class="chbvisited" id="chb3288" data-tokens="Horská etapa Morava"
+               value="3288" >Pálavský anděl lásky (3288)</option>
+   
+       <option class="chbvisited" id="chb3289" data-tokens="Horská etapa střed Morava"
+               value="3289" >Děvín – vyhlídka (3289)</option>
+   
+       <option class="chbvisited" id="chb3290" data-tokens="Horská etapa Morava"
+               value="3290" >Dolní Dunajovice – muzeum vinařství (3290)</option>
+   
+       <option class="chbvisited" id="chb3291" data-tokens="Horská etapa Morava"
+               value="3291" >Paprsek – horský hotel (3291)</option>
+   
+       <option class="chbvisited" id="chb3292" data-tokens="Horská etapa střed Morava"
+               value="3292" >Medvědí bouda – rozcestník (3292)</option>
+   
+       <option class="chbvisited" id="chb3293" data-tokens="Horská etapa Morava"
+               value="3293" >Kladské sedlo – rozcestník (3293)</option>
+   
+       <option class="chbvisited" id="chb3333" data-tokens="None"
+               value="3333" >Olomouc - start (3333)</option>
+   
+       <option class="chbvisited" id="chb3334" data-tokens="None"
+               value="3334" >Olomouc - cíl (3334)</option>
+   
+</select>
+    </div>
+    <div class="form-group">
+      <div class="form-check-inline">
+        <label class="form-check-label" >
+            <input class="form-check-input" type="checkbox" id="spanek" name="spanek" value="1" >
+            Spánek
+        </label>
+      </div>
+      <div class="form-check-inline">
+        <label class="form-check-label">
+            <input type="checkbox" id="usepremie" name="usepremie" value="1" >
+            Používat FTF prémie
+        </label>
+      </div>
+      <div class="form-check-inline">
+        <label class="form-check-label">
+            <input type="checkbox" id="consolation" name="consolation" value="1" 
+                     checked="checked"
+                   >
+            Body útěchy
+        </label>
+      </div>
+    </div>
+    <div class="form-group ">
+    <div class="form-row form-group ">
+        <div class="col-9">
+            <label for="selecttempvisited">Dočasně blokované checkpointy</label>
+            <select multiple class="form-control selectpicker" title="žádné nevybrány"
+      data-live-search="true" data-selected-text-format="count"
+      id="selecttempvisited" name="tempid[]" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false"
+      data-live-search-normalize="true">
+   
+       <option class="chbtempvisited" id="chbt3000" data-tokens="Středočeský"
+               value="3000" >Praha – Památník prvního rozhlasového vysílání v ČSR (3000)</option>
+   
+       <option class="chbtempvisited" id="chbt3001" data-tokens="Liberecký"
+               value="3001" >Kumburk – zřícenina (vyhlídková věž) (3001)</option>
+   
+       <option class="chbtempvisited" id="chbt3002" data-tokens="Liberecký"
+               value="3002" >Holany – Ovčí lávka (3002)</option>
+   
+       <option class="chbtempvisited" id="chbt3003" data-tokens="Liberecký"
+               value="3003" >Rovensko pod Troskami – dřevěná zvonice (3003)</option>
+   
+       <option class="chbtempvisited" id="chbt3009" data-tokens="Liberecký"
+               value="3009" >Košťálov – sokolovna (3009)</option>
+   
+       <option class="chbtempvisited" id="chbt3018" data-tokens="Liberecký"
+               value="3018" >Sloup – skalní hrad (rozcestník) (3018)</option>
+   
+       <option class="chbtempvisited" id="chbt3023" data-tokens="Ústecký"
+               value="3023" >Prostřední Žleb – kaple Andělů strážných (3023)</option>
+   
+       <option class="chbtempvisited" id="chbt3024" data-tokens="Ústecký"
+               value="3024" >Tanečnice – rozhledna (3024)</option>
+   
+       <option class="chbtempvisited" id="chbt3026" data-tokens="Ústecký"
+               value="3026" >Peruc – Oldřichův dub (3026)</option>
+   
+       <option class="chbtempvisited" id="chbt3027" data-tokens="Ústecký"
+               value="3027" >Varnsdorf – rozhledna Hrádek (3027)</option>
+   
+       <option class="chbtempvisited" id="chbt3033" data-tokens="Ústecký"
+               value="3033" >Nejsevernější bod ČR (3033)</option>
+   
+       <option class="chbtempvisited" id="chbt3045" data-tokens="Karlovarský"
+               value="3045" >Aš – Goethův památník (3045)</option>
+   
+       <option class="chbtempvisited" id="chbt3046" data-tokens="Karlovarský"
+               value="3046" >Chyše – zámek (3046)</option>
+   
+       <option class="chbtempvisited" id="chbt3050" data-tokens="Karlovarský"
+               value="3050" >Doubrava – skanzen (3050)</option>
+   
+       <option class="chbtempvisited" id="chbt3053" data-tokens="Karlovarský"
+               value="3053" >Pramen Věra (3053)</option>
+   
+       <option class="chbtempvisited" id="chbt3056" data-tokens="Karlovarský"
+               value="3056" >Doubská hora – kaple sv. Nikolaje (3056)</option>
+   
+       <option class="chbtempvisited" id="chbt3061" data-tokens="Plzeňský"
+               value="3061" >Rabí – zřícenina (vstup) (3061)</option>
+   
+       <option class="chbtempvisited" id="chbt3062" data-tokens="Plzeňský"
+               value="3062" >Hrádek – socha chodského psa (3062)</option>
+   
+       <option class="chbtempvisited" id="chbt3066" data-tokens="Plzeňský"
+               value="3066" >Klenová – zřícenina (3066)</option>
+   
+       <option class="chbtempvisited" id="chbt3072" data-tokens="Plzeňský"
+               value="3072" >Hraběcí kříž – vyhlídka (3072)</option>
+   
+       <option class="chbtempvisited" id="chbt3077" data-tokens="Plzeňský"
+               value="3077" >Němčovice – Pařezová chaloupka (3077)</option>
+   
+       <option class="chbtempvisited" id="chbt3082" data-tokens="Jihočeský"
+               value="3082" >Stádlecký řetězový most (3082)</option>
+   
+       <option class="chbtempvisited" id="chbt3089" data-tokens="Jihočeský"
+               value="3089" >Rybník Rožmberk (rozcestník na hrázi) (3089)</option>
+   
+       <option class="chbtempvisited" id="chbt3094" data-tokens="Jihočeský"
+               value="3094" >Libín – rozhledna (3094)</option>
+   
+       <option class="chbtempvisited" id="chbt3099" data-tokens="Jihočeský"
+               value="3099" >Svobodná hora – rozhledna Haniperk (3099)</option>
+   
+       <option class="chbtempvisited" id="chbt3100" data-tokens="Jihočeský"
+               value="3100" >Borotín – zřícenina (3100)</option>
+   
+       <option class="chbtempvisited" id="chbt3107" data-tokens="Středočeský"
+               value="3107" >Vacíkov – lovecký zámeček (3107)</option>
+   
+       <option class="chbtempvisited" id="chbt3108" data-tokens="Středočeský"
+               value="3108" >Neratovice – kamenný nápis MILUJI (3108)</option>
+   
+       <option class="chbtempvisited" id="chbt3109" data-tokens="Středočeský"
+               value="3109" >Kamenný stůl (3109)</option>
+   
+       <option class="chbtempvisited" id="chbt3116" data-tokens="Středočeský"
+               value="3116" >Hostomice – pivovar (3116)</option>
+   
+       <option class="chbtempvisited" id="chbt3118" data-tokens="Středočeský"
+               value="3118" >Skalka – klášter (3118)</option>
+   
+       <option class="chbtempvisited" id="chbt3120" data-tokens="Středočeský"
+               value="3120" >Dobrá Voda – socha sv. Františka (3120)</option>
+   
+       <option class="chbtempvisited" id="chbt3121" data-tokens="Královehradecký"
+               value="3121" >Kuks – hospital (socha alegorie Náboženství) (3121)</option>
+   
+       <option class="chbtempvisited" id="chbt3122" data-tokens="Královehradecký"
+               value="3122" >Babí – socha královny Elišky Rejčky (3122)</option>
+   
+       <option class="chbtempvisited" id="chbt3131" data-tokens="Královehradecký"
+               value="3131" >Heřmánkovice – kostel Všech svatých (3131)</option>
+   
+       <option class="chbtempvisited" id="chbt3137" data-tokens="Královehradecký"
+               value="3137" >Kostelec nad Orlicí – Nový zámek (3137)</option>
+   
+       <option class="chbtempvisited" id="chbt3140" data-tokens="Královehradecký"
+               value="3140" >Opočno – zámek (3140)</option>
+   
+       <option class="chbtempvisited" id="chbt3145" data-tokens="Pardubický"
+               value="3145" >Lázně Bohdaneč – radnice (3145)</option>
+   
+       <option class="chbtempvisited" id="chbt3149" data-tokens="Pardubický"
+               value="3149" >Hvězda – rybník (rozcestník) (3149)</option>
+   
+       <option class="chbtempvisited" id="chbt3154" data-tokens="Pardubický"
+               value="3154" >Žampach – zřícenina (3154)</option>
+   
+       <option class="chbtempvisited" id="chbt3158" data-tokens="Pardubický"
+               value="3158" >Rychmburk – hrad (3158)</option>
+   
+       <option class="chbtempvisited" id="chbt3159" data-tokens="Pardubický"
+               value="3159" >Chvaletice – evangelický kostel (3159)</option>
+   
+       <option class="chbtempvisited" id="chbt3163" data-tokens="Vysočina"
+               value="3163" >Počátky – rodný dům Otokara Březiny (3163)</option>
+   
+       <option class="chbtempvisited" id="chbt3164" data-tokens="Vysočina"
+               value="3164" >Rosička – rozhledna (3164)</option>
+   
+       <option class="chbtempvisited" id="chbt3167" data-tokens="Vysočina"
+               value="3167" >Velké Meziříčí – rozhledna Fajtův kopec (3167)</option>
+   
+       <option class="chbtempvisited" id="chbt3169" data-tokens="Vysočina"
+               value="3169" >Velká Bíteš – opevněný kostel sv. Jana Křtitele (3169)</option>
+   
+       <option class="chbtempvisited" id="chbt3170" data-tokens="Vysočina"
+               value="3170" >Mysliboř – socha Vodní víla (3170)</option>
+   
+       <option class="chbtempvisited" id="chbt3174" data-tokens="Vysočina"
+               value="3174" >Bystřice nad Pernštejnem – Park miniatur (hrad Pernštejn) (3174)</option>
+   
+       <option class="chbtempvisited" id="chbt3185" data-tokens="Jihomoravský Morava"
+               value="3185" >Radošov – rozhledna (3185)</option>
+   
+       <option class="chbtempvisited" id="chbt3188" data-tokens="Jihomoravský Morava"
+               value="3188" >Bohutice – Lurdská jeskyně (3188)</option>
+   
+       <option class="chbtempvisited" id="chbt3190" data-tokens="Jihomoravský Morava"
+               value="3190" >Čejkovice – zámek (3190)</option>
+   
+       <option class="chbtempvisited" id="chbt3191" data-tokens="Jihomoravský Morava"
+               value="3191" >Pernštejn – hrad (vstup) (3191)</option>
+   
+       <option class="chbtempvisited" id="chbt3194" data-tokens="Jihomoravský Morava"
+               value="3194" >Mikulov – zámek (kašna) (3194)</option>
+   
+       <option class="chbtempvisited" id="chbt3195" data-tokens="Jihomoravský Morava"
+               value="3195" >Slavkov u Brna – kaple sv. Urbana (3195)</option>
+   
+       <option class="chbtempvisited" id="chbt3203" data-tokens="Zlínský Morava"
+               value="3203" >Střílky – barokní hřbitov (3203)</option>
+   
+       <option class="chbtempvisited" id="chbt3208" data-tokens="Zlínský Morava"
+               value="3208" >Kunovice – Letecké muzeum (vstup) (3208)</option>
+   
+       <option class="chbtempvisited" id="chbt3210" data-tokens="Zlínský Morava"
+               value="3210" >Zubří – kaple sv. Ducha (3210)</option>
+   
+       <option class="chbtempvisited" id="chbt3214" data-tokens="Zlínský Morava"
+               value="3214" >Vsetín – socha Milník (3214)</option>
+   
+       <option class="chbtempvisited" id="chbt3215" data-tokens="Zlínský Morava"
+               value="3215" >Bojkovice – rozhledna Na Skalce (3215)</option>
+   
+       <option class="chbtempvisited" id="chbt3223" data-tokens="Olomoucký Morava"
+               value="3223" >Litovel – Svatojánský most (3223)</option>
+   
+       <option class="chbtempvisited" id="chbt3224" data-tokens="Olomoucký Morava"
+               value="3224" >Jeskyně Na Špičáku (3224)</option>
+   
+       <option class="chbtempvisited" id="chbt3232" data-tokens="Olomoucký Morava"
+               value="3232" >Biskupská kupa – rozhledna (3232)</option>
+   
+       <option class="chbtempvisited" id="chbt3234" data-tokens="Olomoucký Morava"
+               value="3234" >Lipník nad Bečvou – nábřeží Járy Cimrmana (malba dámy se slunečníkem) (3234)</option>
+   
+       <option class="chbtempvisited" id="chbt3236" data-tokens="Olomoucký Morava"
+               value="3236" >Šternberk – hrad (vstup) (3236)</option>
+   
+       <option class="chbtempvisited" id="chbt3238" data-tokens="Olomoucký Morava"
+               value="3238" >Skalka – minerální prameny (3238)</option>
+   
+       <option class="chbtempvisited" id="chbt3242" data-tokens="Moravskoslezský Morava"
+               value="3242" >Opava – kostel sv. Jana Nepomuckého (3242)</option>
+   
+       <option class="chbtempvisited" id="chbt3244" data-tokens="Moravskoslezský Morava"
+               value="3244" >Dolní Marklovice – dřevěný kostel (3244)</option>
+   
+       <option class="chbtempvisited" id="chbt3246" data-tokens="Moravskoslezský Morava"
+               value="3246" >Chalupki (PL) – Palac Rotszyldów (3246)</option>
+   
+       <option class="chbtempvisited" id="chbt3250" data-tokens="Moravskoslezský Morava"
+               value="3250" >Vikštejn – zřícenina (3250)</option>
+   
+       <option class="chbtempvisited" id="chbt3253" data-tokens="Moravskoslezský Morava"
+               value="3253" >Hodslavice – umělecká vyhlídka Krásověda (3253)</option>
+   
+       <option class="chbtempvisited" id="chbt3258" data-tokens="Moravskoslezský Morava"
+               value="3258" >Bruntál – zámek (vstup) (3258)</option>
+   
+       <option class="chbtempvisited" id="chbt3267" data-tokens="Horská etapa Morava"
+               value="3267" >Godula – památník vydání tolerančního patentu (3267)</option>
+   
+       <option class="chbtempvisited" id="chbt3268" data-tokens="Horská etapa střed Morava"
+               value="3268" >Javorový – vrchol (3268)</option>
+   
+       <option class="chbtempvisited" id="chbt3269" data-tokens="Horská etapa Morava"
+               value="3269" >Malý Javorový – turistická chata (3269)</option>
+   
+       <option class="chbtempvisited" id="chbt3270" data-tokens="Horská etapa"
+               value="3270" >Vodní nádrž Bedřichov – hráz (3270)</option>
+   
+       <option class="chbtempvisited" id="chbt3271" data-tokens="Horská etapa střed"
+               value="3271" >Nová Louka – lovecký zámeček (3271)</option>
+   
+       <option class="chbtempvisited" id="chbt3272" data-tokens="Horská etapa"
+               value="3272" >Hašlerova chata (3272)</option>
+   
+       <option class="chbtempvisited" id="chbt3273" data-tokens="Horská etapa"
+               value="3273" >Žacléř – hornický skanzen (vstup) (3273)</option>
+   
+       <option class="chbtempvisited" id="chbt3274" data-tokens="Horská etapa střed"
+               value="3274" >Horní Albeřice – muzeum Vápenka (3274)</option>
+   
+       <option class="chbtempvisited" id="chbt3275" data-tokens="Horská etapa"
+               value="3275" >Horní Lysečiny – kaple Narození Páně (3275)</option>
+   
+       <option class="chbtempvisited" id="chbt3279" data-tokens="Horská etapa"
+               value="3279" >Velhartice – hrad (vstup) (3279)</option>
+   
+       <option class="chbtempvisited" id="chbt3280" data-tokens="Horská etapa střed"
+               value="3280" >Svinná – kaple sv. Vendelína (3280)</option>
+   
+       <option class="chbtempvisited" id="chbt3281" data-tokens="Horská etapa"
+               value="3281" >Můstek – turistický přístřešek (3281)</option>
+   
+       <option class="chbtempvisited" id="chbt3285" data-tokens="Horská etapa"
+               value="3285" >Cínovec – pomník první zmínky o obci (3285)</option>
+   
+       <option class="chbtempvisited" id="chbt3286" data-tokens="Horská etapa střed"
+               value="3286" >Kohlhaukuppe (DE) – rozhledna (3286)</option>
+   
+       <option class="chbtempvisited" id="chbt3287" data-tokens="Horská etapa"
+               value="3287" >Komáří vížka – rozhledna (3287)</option>
+   
+       <option class="chbtempvisited" id="chbt3288" data-tokens="Horská etapa Morava"
+               value="3288" >Pálavský anděl lásky (3288)</option>
+   
+       <option class="chbtempvisited" id="chbt3289" data-tokens="Horská etapa střed Morava"
+               value="3289" >Děvín – vyhlídka (3289)</option>
+   
+       <option class="chbtempvisited" id="chbt3290" data-tokens="Horská etapa Morava"
+               value="3290" >Dolní Dunajovice – muzeum vinařství (3290)</option>
+   
+       <option class="chbtempvisited" id="chbt3291" data-tokens="Horská etapa Morava"
+               value="3291" >Paprsek – horský hotel (3291)</option>
+   
+       <option class="chbtempvisited" id="chbt3292" data-tokens="Horská etapa střed Morava"
+               value="3292" >Medvědí bouda – rozcestník (3292)</option>
+   
+       <option class="chbtempvisited" id="chbt3293" data-tokens="Horská etapa Morava"
+               value="3293" >Kladské sedlo – rozcestník (3293)</option>
+   
+       <option class="chbtempvisited" id="chbt3333" data-tokens="None"
+               value="3333" >Olomouc - start (3333)</option>
+   
+       <option class="chbtempvisited" id="chbt3334" data-tokens="None"
+               value="3334" >Olomouc - cíl (3334)</option>
+   
+</select>
+        </div>
+        <div class="col-3">
+            <label for="temptime">Blokováno do</label>
+            <input type='datetime-local'name='temptime' id='temptime' value="2023-08-01T00:00:00" >
+        </div>
+    </div>
+<div class="accordion" id="accordionEx" role="tablist" aria-multiselectable="true">
+  <div class="card">
+    <div class="card-header" role="tab" id="headingOne1">
+      <a data-toggle="collapse" data-parent="#accordionEx" href="#collapseOne1" aria-expanded="true"
+        aria-controls="collapseOne1" onclick="$('#collapsed-arrow').toggleClass('fa-rotate-180')">
+        <h5 class="mb-0">
+          Rozšířené zadání <i class="fas fa-angle-down" id="collapsed-arrow"></i>
+        </h5>
+      </a>
+    </div>
+    <div id="collapseOne1" class="collapse" role="tabpanel" aria-labelledby="headingOne1" data-parent="#accordionEx">
+        <div class="card-body">
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="body">Body</label>
+                    <input type="number" class="form-control" id="body" name="body" value="0">
+                </div>
+                <div class="col">
+                    <label for="km">Km</label>
+                    <input type="number" class="form-control" id="km" name="km" step="0.1" value="0.0">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="kroku">Kroků v iteraci</label>
+                    <input type="number" class="form-control" id="kroku" name="kroku" value="100">
+                </div>
+                <div class="col">
+                    <label for="koef_unavy">Koeficient únavy</label>
+                    <input type="number" class="form-control" id="koef_unavy" name="koef_unavy" step="0.01" value="0.0">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="limitpocet">Limit pro počet</label>
+                    <input type="number" class="form-control" id="limitpocet" name="limitpocet" value="40">
+                </div>
+                <div class="col">
+                    <label for="limitvykon">Limit pro výkon</label>
+                    <input type="number" class="form-control" id="limitvykon" name="limitvykon" step="0.01" value="0.33">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="kmcelk">Limit pro km</label>
+                    <input type="number" class="form-control" id="kmcelk" name="kmcelk" step="0.1" value="185.0">
+                </div>
+                <div class="col">
+                    <label for="C">Záporné body za km nad limit</label>
+                    <input type="number" class="form-control" id="C" name="C" step="0.01" value="0.25">
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="uroven">Checkpointy ve dni startu</label>
+                    <input type="number" class="form-control" id="uroven" name="uroven" value="0">
+                </div>
+                <div class="col">
+                    <label for="metoda">Metoda</label>
+                    <select class="selectmetoda form-control" id="metoda" name="metoda">
+                        <option value="1" 
+                     selected="selected"
+                   >výkon 1 po checkpointech</option>
+                        <option value="2" >výkon 2 po checkpointech</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="spanekod">Spánek v rozmezí od </label>
+                    <input type='datetime-local'name='spanekod' id='spanekod' value="2023-08-01T20:00:00" >
+                </div>
+                <div class="col">
+                    <label for="spanekdo">do </label>
+                    <input type='datetime-local'name='spanekdo' id='spanekdo' value="2023-08-03T02:00:00" >
+                </div>
+            </div>
+            <div class="form-row form-group ">
+                <div class="col">
+                    <label for="selectkraje">Navštívené kraje v den startu</label>
+                    <select multiple class="form-control selectpicker" title="žádné nevybrány"
+      data-live-search="true" data-selected-text-format="count"
+      id="selectkraje" name="kraje[]" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false" data-size="false">
+   
+       <option value="1" >L</option>
+   
+       <option value="2" >U</option>
+   
+       <option value="3" >K</option>
+   
+       <option value="4" >P</option>
+   
+       <option value="5" >C</option>
+   
+       <option value="6" >S</option>
+   
+       <option value="7" >H</option>
+   
+       <option value="8" >E</option>
+   
+       <option value="9" >J</option>
+   
+       <option value="10" >B</option>
+   
+       <option value="11" >Z</option>
+   
+       <option value="12" >M</option>
+   
+       <option value="13" >T</option>
+   
+</select>
+                </div>
+                <div class="col">
+                    <label for="selectpostupka">Postupka v den startu</label>
+                    <select multiple class="form-control selectpicker" title="nic"
+                    data-selected-text-format="values"
+                    id="selectpostupka" name="postupka[]" data-dropup-auto="false" data-size="false">
+                    
+                        <option value="2" >2
+                        </option>
+                    
+                        <option value="3" >3
+                        </option>
+                    
+                        <option value="4" >4
+                        </option>
+                    
+                        <option value="5" >5
+                        </option>
+                    
+                        <option value="6" >6
+                        </option>
+                    
+                        <option value="7" >7
+                        </option>
+                    
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+  </div>
+</div>
+    <div class="form-group ">
+      <button type="button" class="btn btn-info"  onClick="vypocetClick()" />Vypočítat trasy</button>
+      <button type="button" class="btn btn-info"  onClick="pokracovatClick()" />Pokračovat</button>
+      <button type="button" class="btn btn-info"  onClick="navazatClick()" />Navázat</button>
+      <button type="button" class="btn btn-info"  onClick="zastavitClick()" />Zastavit</button>
+    </div>
+</form>
+</div>
+
+<div class="container-fluid">
+    <p align="right" id="vyvoj"></p>
+    <div class="progress">
+        <div class="progress-bar progress-bar-striped bg-info" id="timer" style="width:0%"></div>
+    </div>
+    <script>startTimer();</script>
+    <hr>
+    <form id="vysledky" name="vysledky">
+    <div class="row align-items-center">
+        <div class="form-group col-xs-3  col-md-3">
+        <label for="razeni">Řazení</label>
+        <select class="selectrazeni form-control" id="razeni" name="razeni">
+            <option value="1" >podle výkonu</option>
+            <option value="2"  selected="selected">podle bodů</option>
+            <option value="3" >podle prémií</option>
+            <option value="4" >podle bodů bez prémií</option>
+            <option value="5" >podle prvního chp.</option>
+            <option value="6" >podle posledního chp.</option>
+        </select>
+        </div>
+
+        <div class="form-group col-xs-3 col-md-3 form-check" style="text-align:center">
+            <label for="Praha" class="form-check-label">
+                <input type="checkbox" id="Praha" value="1" 
+                        checked
+                        >
+                musí obsahovat povinný checkpoint
+            </label>
+        </div>
+
+        <div class="form-group col-xs-3 col-md-3">
+        <label for="start">První checkpoint</label>
+        <select multiple class="form-control selectpicker" title="žádný filtr"
+      data-live-search="true" data-selected-text-format="count"
+      id="start" name="start[]" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false"
+      data-live-search-normalize="true">
+   
+       <option class="chbstart" id="start3000" data-tokens="Středočeský"
+               value="3000" >Praha – Památník prvního rozhlasového vysílání v ČSR (3000)</option>
+   
+       <option class="chbstart" id="start3001" data-tokens="Liberecký"
+               value="3001" >Kumburk – zřícenina (vyhlídková věž) (3001)</option>
+   
+       <option class="chbstart" id="start3002" data-tokens="Liberecký"
+               value="3002" >Holany – Ovčí lávka (3002)</option>
+   
+       <option class="chbstart" id="start3003" data-tokens="Liberecký"
+               value="3003" >Rovensko pod Troskami – dřevěná zvonice (3003)</option>
+   
+       <option class="chbstart" id="start3009" data-tokens="Liberecký"
+               value="3009" >Košťálov – sokolovna (3009)</option>
+   
+       <option class="chbstart" id="start3018" data-tokens="Liberecký"
+               value="3018" >Sloup – skalní hrad (rozcestník) (3018)</option>
+   
+       <option class="chbstart" id="start3023" data-tokens="Ústecký"
+               value="3023" >Prostřední Žleb – kaple Andělů strážných (3023)</option>
+   
+       <option class="chbstart" id="start3024" data-tokens="Ústecký"
+               value="3024" >Tanečnice – rozhledna (3024)</option>
+   
+       <option class="chbstart" id="start3026" data-tokens="Ústecký"
+               value="3026" >Peruc – Oldřichův dub (3026)</option>
+   
+       <option class="chbstart" id="start3027" data-tokens="Ústecký"
+               value="3027" >Varnsdorf – rozhledna Hrádek (3027)</option>
+   
+       <option class="chbstart" id="start3033" data-tokens="Ústecký"
+               value="3033" >Nejsevernější bod ČR (3033)</option>
+   
+       <option class="chbstart" id="start3045" data-tokens="Karlovarský"
+               value="3045" >Aš – Goethův památník (3045)</option>
+   
+       <option class="chbstart" id="start3046" data-tokens="Karlovarský"
+               value="3046" >Chyše – zámek (3046)</option>
+   
+       <option class="chbstart" id="start3050" data-tokens="Karlovarský"
+               value="3050" >Doubrava – skanzen (3050)</option>
+   
+       <option class="chbstart" id="start3053" data-tokens="Karlovarský"
+               value="3053" >Pramen Věra (3053)</option>
+   
+       <option class="chbstart" id="start3056" data-tokens="Karlovarský"
+               value="3056" >Doubská hora – kaple sv. Nikolaje (3056)</option>
+   
+       <option class="chbstart" id="start3061" data-tokens="Plzeňský"
+               value="3061" >Rabí – zřícenina (vstup) (3061)</option>
+   
+       <option class="chbstart" id="start3062" data-tokens="Plzeňský"
+               value="3062" >Hrádek – socha chodského psa (3062)</option>
+   
+       <option class="chbstart" id="start3066" data-tokens="Plzeňský"
+               value="3066" >Klenová – zřícenina (3066)</option>
+   
+       <option class="chbstart" id="start3072" data-tokens="Plzeňský"
+               value="3072" >Hraběcí kříž – vyhlídka (3072)</option>
+   
+       <option class="chbstart" id="start3077" data-tokens="Plzeňský"
+               value="3077" >Němčovice – Pařezová chaloupka (3077)</option>
+   
+       <option class="chbstart" id="start3082" data-tokens="Jihočeský"
+               value="3082" >Stádlecký řetězový most (3082)</option>
+   
+       <option class="chbstart" id="start3089" data-tokens="Jihočeský"
+               value="3089" >Rybník Rožmberk (rozcestník na hrázi) (3089)</option>
+   
+       <option class="chbstart" id="start3094" data-tokens="Jihočeský"
+               value="3094" >Libín – rozhledna (3094)</option>
+   
+       <option class="chbstart" id="start3099" data-tokens="Jihočeský"
+               value="3099" >Svobodná hora – rozhledna Haniperk (3099)</option>
+   
+       <option class="chbstart" id="start3100" data-tokens="Jihočeský"
+               value="3100" >Borotín – zřícenina (3100)</option>
+   
+       <option class="chbstart" id="start3107" data-tokens="Středočeský"
+               value="3107" >Vacíkov – lovecký zámeček (3107)</option>
+   
+       <option class="chbstart" id="start3108" data-tokens="Středočeský"
+               value="3108" >Neratovice – kamenný nápis MILUJI (3108)</option>
+   
+       <option class="chbstart" id="start3109" data-tokens="Středočeský"
+               value="3109" >Kamenný stůl (3109)</option>
+   
+       <option class="chbstart" id="start3116" data-tokens="Středočeský"
+               value="3116" >Hostomice – pivovar (3116)</option>
+   
+       <option class="chbstart" id="start3118" data-tokens="Středočeský"
+               value="3118" >Skalka – klášter (3118)</option>
+   
+       <option class="chbstart" id="start3120" data-tokens="Středočeský"
+               value="3120" >Dobrá Voda – socha sv. Františka (3120)</option>
+   
+       <option class="chbstart" id="start3121" data-tokens="Královehradecký"
+               value="3121" >Kuks – hospital (socha alegorie Náboženství) (3121)</option>
+   
+       <option class="chbstart" id="start3122" data-tokens="Královehradecký"
+               value="3122" >Babí – socha královny Elišky Rejčky (3122)</option>
+   
+       <option class="chbstart" id="start3131" data-tokens="Královehradecký"
+               value="3131" >Heřmánkovice – kostel Všech svatých (3131)</option>
+   
+       <option class="chbstart" id="start3137" data-tokens="Královehradecký"
+               value="3137" >Kostelec nad Orlicí – Nový zámek (3137)</option>
+   
+       <option class="chbstart" id="start3140" data-tokens="Královehradecký"
+               value="3140" >Opočno – zámek (3140)</option>
+   
+       <option class="chbstart" id="start3145" data-tokens="Pardubický"
+               value="3145" >Lázně Bohdaneč – radnice (3145)</option>
+   
+       <option class="chbstart" id="start3149" data-tokens="Pardubický"
+               value="3149" >Hvězda – rybník (rozcestník) (3149)</option>
+   
+       <option class="chbstart" id="start3154" data-tokens="Pardubický"
+               value="3154" >Žampach – zřícenina (3154)</option>
+   
+       <option class="chbstart" id="start3158" data-tokens="Pardubický"
+               value="3158" >Rychmburk – hrad (3158)</option>
+   
+       <option class="chbstart" id="start3159" data-tokens="Pardubický"
+               value="3159" >Chvaletice – evangelický kostel (3159)</option>
+   
+       <option class="chbstart" id="start3163" data-tokens="Vysočina"
+               value="3163" >Počátky – rodný dům Otokara Březiny (3163)</option>
+   
+       <option class="chbstart" id="start3164" data-tokens="Vysočina"
+               value="3164" >Rosička – rozhledna (3164)</option>
+   
+       <option class="chbstart" id="start3167" data-tokens="Vysočina"
+               value="3167" >Velké Meziříčí – rozhledna Fajtův kopec (3167)</option>
+   
+       <option class="chbstart" id="start3169" data-tokens="Vysočina"
+               value="3169" >Velká Bíteš – opevněný kostel sv. Jana Křtitele (3169)</option>
+   
+       <option class="chbstart" id="start3170" data-tokens="Vysočina"
+               value="3170" >Mysliboř – socha Vodní víla (3170)</option>
+   
+       <option class="chbstart" id="start3174" data-tokens="Vysočina"
+               value="3174" >Bystřice nad Pernštejnem – Park miniatur (hrad Pernštejn) (3174)</option>
+   
+       <option class="chbstart" id="start3185" data-tokens="Jihomoravský Morava"
+               value="3185" >Radošov – rozhledna (3185)</option>
+   
+       <option class="chbstart" id="start3188" data-tokens="Jihomoravský Morava"
+               value="3188" >Bohutice – Lurdská jeskyně (3188)</option>
+   
+       <option class="chbstart" id="start3190" data-tokens="Jihomoravský Morava"
+               value="3190" >Čejkovice – zámek (3190)</option>
+   
+       <option class="chbstart" id="start3191" data-tokens="Jihomoravský Morava"
+               value="3191" >Pernštejn – hrad (vstup) (3191)</option>
+   
+       <option class="chbstart" id="start3194" data-tokens="Jihomoravský Morava"
+               value="3194" >Mikulov – zámek (kašna) (3194)</option>
+   
+       <option class="chbstart" id="start3195" data-tokens="Jihomoravský Morava"
+               value="3195" >Slavkov u Brna – kaple sv. Urbana (3195)</option>
+   
+       <option class="chbstart" id="start3203" data-tokens="Zlínský Morava"
+               value="3203" >Střílky – barokní hřbitov (3203)</option>
+   
+       <option class="chbstart" id="start3208" data-tokens="Zlínský Morava"
+               value="3208" >Kunovice – Letecké muzeum (vstup) (3208)</option>
+   
+       <option class="chbstart" id="start3210" data-tokens="Zlínský Morava"
+               value="3210" >Zubří – kaple sv. Ducha (3210)</option>
+   
+       <option class="chbstart" id="start3214" data-tokens="Zlínský Morava"
+               value="3214" >Vsetín – socha Milník (3214)</option>
+   
+       <option class="chbstart" id="start3215" data-tokens="Zlínský Morava"
+               value="3215" >Bojkovice – rozhledna Na Skalce (3215)</option>
+   
+       <option class="chbstart" id="start3223" data-tokens="Olomoucký Morava"
+               value="3223" >Litovel – Svatojánský most (3223)</option>
+   
+       <option class="chbstart" id="start3224" data-tokens="Olomoucký Morava"
+               value="3224" >Jeskyně Na Špičáku (3224)</option>
+   
+       <option class="chbstart" id="start3232" data-tokens="Olomoucký Morava"
+               value="3232" >Biskupská kupa – rozhledna (3232)</option>
+   
+       <option class="chbstart" id="start3234" data-tokens="Olomoucký Morava"
+               value="3234" >Lipník nad Bečvou – nábřeží Járy Cimrmana (malba dámy se slunečníkem) (3234)</option>
+   
+       <option class="chbstart" id="start3236" data-tokens="Olomoucký Morava"
+               value="3236" >Šternberk – hrad (vstup) (3236)</option>
+   
+       <option class="chbstart" id="start3238" data-tokens="Olomoucký Morava"
+               value="3238" >Skalka – minerální prameny (3238)</option>
+   
+       <option class="chbstart" id="start3242" data-tokens="Moravskoslezský Morava"
+               value="3242" >Opava – kostel sv. Jana Nepomuckého (3242)</option>
+   
+       <option class="chbstart" id="start3244" data-tokens="Moravskoslezský Morava"
+               value="3244" >Dolní Marklovice – dřevěný kostel (3244)</option>
+   
+       <option class="chbstart" id="start3246" data-tokens="Moravskoslezský Morava"
+               value="3246" >Chalupki (PL) – Palac Rotszyldów (3246)</option>
+   
+       <option class="chbstart" id="start3250" data-tokens="Moravskoslezský Morava"
+               value="3250" >Vikštejn – zřícenina (3250)</option>
+   
+       <option class="chbstart" id="start3253" data-tokens="Moravskoslezský Morava"
+               value="3253" >Hodslavice – umělecká vyhlídka Krásověda (3253)</option>
+   
+       <option class="chbstart" id="start3258" data-tokens="Moravskoslezský Morava"
+               value="3258" >Bruntál – zámek (vstup) (3258)</option>
+   
+       <option class="chbstart" id="start3267" data-tokens="Horská etapa Morava"
+               value="3267" >Godula – památník vydání tolerančního patentu (3267)</option>
+   
+       <option class="chbstart" id="start3268" data-tokens="Horská etapa střed Morava"
+               value="3268" >Javorový – vrchol (3268)</option>
+   
+       <option class="chbstart" id="start3269" data-tokens="Horská etapa Morava"
+               value="3269" >Malý Javorový – turistická chata (3269)</option>
+   
+       <option class="chbstart" id="start3270" data-tokens="Horská etapa"
+               value="3270" >Vodní nádrž Bedřichov – hráz (3270)</option>
+   
+       <option class="chbstart" id="start3271" data-tokens="Horská etapa střed"
+               value="3271" >Nová Louka – lovecký zámeček (3271)</option>
+   
+       <option class="chbstart" id="start3272" data-tokens="Horská etapa"
+               value="3272" >Hašlerova chata (3272)</option>
+   
+       <option class="chbstart" id="start3273" data-tokens="Horská etapa"
+               value="3273" >Žacléř – hornický skanzen (vstup) (3273)</option>
+   
+       <option class="chbstart" id="start3274" data-tokens="Horská etapa střed"
+               value="3274" >Horní Albeřice – muzeum Vápenka (3274)</option>
+   
+       <option class="chbstart" id="start3275" data-tokens="Horská etapa"
+               value="3275" >Horní Lysečiny – kaple Narození Páně (3275)</option>
+   
+       <option class="chbstart" id="start3279" data-tokens="Horská etapa"
+               value="3279" >Velhartice – hrad (vstup) (3279)</option>
+   
+       <option class="chbstart" id="start3280" data-tokens="Horská etapa střed"
+               value="3280" >Svinná – kaple sv. Vendelína (3280)</option>
+   
+       <option class="chbstart" id="start3281" data-tokens="Horská etapa"
+               value="3281" >Můstek – turistický přístřešek (3281)</option>
+   
+       <option class="chbstart" id="start3285" data-tokens="Horská etapa"
+               value="3285" >Cínovec – pomník první zmínky o obci (3285)</option>
+   
+       <option class="chbstart" id="start3286" data-tokens="Horská etapa střed"
+               value="3286" >Kohlhaukuppe (DE) – rozhledna (3286)</option>
+   
+       <option class="chbstart" id="start3287" data-tokens="Horská etapa"
+               value="3287" >Komáří vížka – rozhledna (3287)</option>
+   
+       <option class="chbstart" id="start3288" data-tokens="Horská etapa Morava"
+               value="3288" >Pálavský anděl lásky (3288)</option>
+   
+       <option class="chbstart" id="start3289" data-tokens="Horská etapa střed Morava"
+               value="3289" >Děvín – vyhlídka (3289)</option>
+   
+       <option class="chbstart" id="start3290" data-tokens="Horská etapa Morava"
+               value="3290" >Dolní Dunajovice – muzeum vinařství (3290)</option>
+   
+       <option class="chbstart" id="start3291" data-tokens="Horská etapa Morava"
+               value="3291" >Paprsek – horský hotel (3291)</option>
+   
+       <option class="chbstart" id="start3292" data-tokens="Horská etapa střed Morava"
+               value="3292" >Medvědí bouda – rozcestník (3292)</option>
+   
+       <option class="chbstart" id="start3293" data-tokens="Horská etapa Morava"
+               value="3293" >Kladské sedlo – rozcestník (3293)</option>
+   
+       <option class="chbstart" id="start3333" data-tokens="None"
+               value="3333" >Olomouc - start (3333)</option>
+   
+       <option class="chbstart" id="start3334" data-tokens="None"
+               value="3334" >Olomouc - cíl (3334)</option>
+   
+</select>
+        </div>
+
+        <div class="form-group col-xs-3 col-md-3">
+        <label for="cil">Poslední checkpoint</label>
+        <select multiple class="form-control selectpicker" title="žádný filtr"
+      data-live-search="true" data-selected-text-format="count"
+      id="cil" name="cil[]" data-actions-box="true"
+      data-count-selected-text="Vybráno: {0}" data-deselect-all-text="Odznač vše"
+      data-select-all-text="Označ vše"  data-dropup-auto="false"
+      data-live-search-normalize="true">
+   
+       <option class="chbcil" id="cil3000" data-tokens="Středočeský"
+               value="3000" >Praha – Památník prvního rozhlasového vysílání v ČSR (3000)</option>
+   
+       <option class="chbcil" id="cil3001" data-tokens="Liberecký"
+               value="3001" >Kumburk – zřícenina (vyhlídková věž) (3001)</option>
+   
+       <option class="chbcil" id="cil3002" data-tokens="Liberecký"
+               value="3002" >Holany – Ovčí lávka (3002)</option>
+   
+       <option class="chbcil" id="cil3003" data-tokens="Liberecký"
+               value="3003" >Rovensko pod Troskami – dřevěná zvonice (3003)</option>
+   
+       <option class="chbcil" id="cil3009" data-tokens="Liberecký"
+               value="3009" >Košťálov – sokolovna (3009)</option>
+   
+       <option class="chbcil" id="cil3018" data-tokens="Liberecký"
+               value="3018" >Sloup – skalní hrad (rozcestník) (3018)</option>
+   
+       <option class="chbcil" id="cil3023" data-tokens="Ústecký"
+               value="3023" >Prostřední Žleb – kaple Andělů strážných (3023)</option>
+   
+       <option class="chbcil" id="cil3024" data-tokens="Ústecký"
+               value="3024" >Tanečnice – rozhledna (3024)</option>
+   
+       <option class="chbcil" id="cil3026" data-tokens="Ústecký"
+               value="3026" >Peruc – Oldřichův dub (3026)</option>
+   
+       <option class="chbcil" id="cil3027" data-tokens="Ústecký"
+               value="3027" >Varnsdorf – rozhledna Hrádek (3027)</option>
+   
+       <option class="chbcil" id="cil3033" data-tokens="Ústecký"
+               value="3033" >Nejsevernější bod ČR (3033)</option>
+   
+       <option class="chbcil" id="cil3045" data-tokens="Karlovarský"
+               value="3045" >Aš – Goethův památník (3045)</option>
+   
+       <option class="chbcil" id="cil3046" data-tokens="Karlovarský"
+               value="3046" >Chyše – zámek (3046)</option>
+   
+       <option class="chbcil" id="cil3050" data-tokens="Karlovarský"
+               value="3050" >Doubrava – skanzen (3050)</option>
+   
+       <option class="chbcil" id="cil3053" data-tokens="Karlovarský"
+               value="3053" >Pramen Věra (3053)</option>
+   
+       <option class="chbcil" id="cil3056" data-tokens="Karlovarský"
+               value="3056" >Doubská hora – kaple sv. Nikolaje (3056)</option>
+   
+       <option class="chbcil" id="cil3061" data-tokens="Plzeňský"
+               value="3061" >Rabí – zřícenina (vstup) (3061)</option>
+   
+       <option class="chbcil" id="cil3062" data-tokens="Plzeňský"
+               value="3062" >Hrádek – socha chodského psa (3062)</option>
+   
+       <option class="chbcil" id="cil3066" data-tokens="Plzeňský"
+               value="3066" >Klenová – zřícenina (3066)</option>
+   
+       <option class="chbcil" id="cil3072" data-tokens="Plzeňský"
+               value="3072" >Hraběcí kříž – vyhlídka (3072)</option>
+   
+       <option class="chbcil" id="cil3077" data-tokens="Plzeňský"
+               value="3077" >Němčovice – Pařezová chaloupka (3077)</option>
+   
+       <option class="chbcil" id="cil3082" data-tokens="Jihočeský"
+               value="3082" >Stádlecký řetězový most (3082)</option>
+   
+       <option class="chbcil" id="cil3089" data-tokens="Jihočeský"
+               value="3089" >Rybník Rožmberk (rozcestník na hrázi) (3089)</option>
+   
+       <option class="chbcil" id="cil3094" data-tokens="Jihočeský"
+               value="3094" >Libín – rozhledna (3094)</option>
+   
+       <option class="chbcil" id="cil3099" data-tokens="Jihočeský"
+               value="3099" >Svobodná hora – rozhledna Haniperk (3099)</option>
+   
+       <option class="chbcil" id="cil3100" data-tokens="Jihočeský"
+               value="3100" >Borotín – zřícenina (3100)</option>
+   
+       <option class="chbcil" id="cil3107" data-tokens="Středočeský"
+               value="3107" >Vacíkov – lovecký zámeček (3107)</option>
+   
+       <option class="chbcil" id="cil3108" data-tokens="Středočeský"
+               value="3108" >Neratovice – kamenný nápis MILUJI (3108)</option>
+   
+       <option class="chbcil" id="cil3109" data-tokens="Středočeský"
+               value="3109" >Kamenný stůl (3109)</option>
+   
+       <option class="chbcil" id="cil3116" data-tokens="Středočeský"
+               value="3116" >Hostomice – pivovar (3116)</option>
+   
+       <option class="chbcil" id="cil3118" data-tokens="Středočeský"
+               value="3118" >Skalka – klášter (3118)</option>
+   
+       <option class="chbcil" id="cil3120" data-tokens="Středočeský"
+               value="3120" >Dobrá Voda – socha sv. Františka (3120)</option>
+   
+       <option class="chbcil" id="cil3121" data-tokens="Královehradecký"
+               value="3121" >Kuks – hospital (socha alegorie Náboženství) (3121)</option>
+   
+       <option class="chbcil" id="cil3122" data-tokens="Královehradecký"
+               value="3122" >Babí – socha královny Elišky Rejčky (3122)</option>
+   
+       <option class="chbcil" id="cil3131" data-tokens="Královehradecký"
+               value="3131" >Heřmánkovice – kostel Všech svatých (3131)</option>
+   
+       <option class="chbcil" id="cil3137" data-tokens="Královehradecký"
+               value="3137" >Kostelec nad Orlicí – Nový zámek (3137)</option>
+   
+       <option class="chbcil" id="cil3140" data-tokens="Královehradecký"
+               value="3140" >Opočno – zámek (3140)</option>
+   
+       <option class="chbcil" id="cil3145" data-tokens="Pardubický"
+               value="3145" >Lázně Bohdaneč – radnice (3145)</option>
+   
+       <option class="chbcil" id="cil3149" data-tokens="Pardubický"
+               value="3149" >Hvězda – rybník (rozcestník) (3149)</option>
+   
+       <option class="chbcil" id="cil3154" data-tokens="Pardubický"
+               value="3154" >Žampach – zřícenina (3154)</option>
+   
+       <option class="chbcil" id="cil3158" data-tokens="Pardubický"
+               value="3158" >Rychmburk – hrad (3158)</option>
+   
+       <option class="chbcil" id="cil3159" data-tokens="Pardubický"
+               value="3159" >Chvaletice – evangelický kostel (3159)</option>
+   
+       <option class="chbcil" id="cil3163" data-tokens="Vysočina"
+               value="3163" >Počátky – rodný dům Otokara Březiny (3163)</option>
+   
+       <option class="chbcil" id="cil3164" data-tokens="Vysočina"
+               value="3164" >Rosička – rozhledna (3164)</option>
+   
+       <option class="chbcil" id="cil3167" data-tokens="Vysočina"
+               value="3167" >Velké Meziříčí – rozhledna Fajtův kopec (3167)</option>
+   
+       <option class="chbcil" id="cil3169" data-tokens="Vysočina"
+               value="3169" >Velká Bíteš – opevněný kostel sv. Jana Křtitele (3169)</option>
+   
+       <option class="chbcil" id="cil3170" data-tokens="Vysočina"
+               value="3170" >Mysliboř – socha Vodní víla (3170)</option>
+   
+       <option class="chbcil" id="cil3174" data-tokens="Vysočina"
+               value="3174" >Bystřice nad Pernštejnem – Park miniatur (hrad Pernštejn) (3174)</option>
+   
+       <option class="chbcil" id="cil3185" data-tokens="Jihomoravský Morava"
+               value="3185" >Radošov – rozhledna (3185)</option>
+   
+       <option class="chbcil" id="cil3188" data-tokens="Jihomoravský Morava"
+               value="3188" >Bohutice – Lurdská jeskyně (3188)</option>
+   
+       <option class="chbcil" id="cil3190" data-tokens="Jihomoravský Morava"
+               value="3190" >Čejkovice – zámek (3190)</option>
+   
+       <option class="chbcil" id="cil3191" data-tokens="Jihomoravský Morava"
+               value="3191" >Pernštejn – hrad (vstup) (3191)</option>
+   
+       <option class="chbcil" id="cil3194" data-tokens="Jihomoravský Morava"
+               value="3194" >Mikulov – zámek (kašna) (3194)</option>
+   
+       <option class="chbcil" id="cil3195" data-tokens="Jihomoravský Morava"
+               value="3195" >Slavkov u Brna – kaple sv. Urbana (3195)</option>
+   
+       <option class="chbcil" id="cil3203" data-tokens="Zlínský Morava"
+               value="3203" >Střílky – barokní hřbitov (3203)</option>
+   
+       <option class="chbcil" id="cil3208" data-tokens="Zlínský Morava"
+               value="3208" >Kunovice – Letecké muzeum (vstup) (3208)</option>
+   
+       <option class="chbcil" id="cil3210" data-tokens="Zlínský Morava"
+               value="3210" >Zubří – kaple sv. Ducha (3210)</option>
+   
+       <option class="chbcil" id="cil3214" data-tokens="Zlínský Morava"
+               value="3214" >Vsetín – socha Milník (3214)</option>
+   
+       <option class="chbcil" id="cil3215" data-tokens="Zlínský Morava"
+               value="3215" >Bojkovice – rozhledna Na Skalce (3215)</option>
+   
+       <option class="chbcil" id="cil3223" data-tokens="Olomoucký Morava"
+               value="3223" >Litovel – Svatojánský most (3223)</option>
+   
+       <option class="chbcil" id="cil3224" data-tokens="Olomoucký Morava"
+               value="3224" >Jeskyně Na Špičáku (3224)</option>
+   
+       <option class="chbcil" id="cil3232" data-tokens="Olomoucký Morava"
+               value="3232" >Biskupská kupa – rozhledna (3232)</option>
+   
+       <option class="chbcil" id="cil3234" data-tokens="Olomoucký Morava"
+               value="3234" >Lipník nad Bečvou – nábřeží Járy Cimrmana (malba dámy se slunečníkem) (3234)</option>
+   
+       <option class="chbcil" id="cil3236" data-tokens="Olomoucký Morava"
+               value="3236" >Šternberk – hrad (vstup) (3236)</option>
+   
+       <option class="chbcil" id="cil3238" data-tokens="Olomoucký Morava"
+               value="3238" >Skalka – minerální prameny (3238)</option>
+   
+       <option class="chbcil" id="cil3242" data-tokens="Moravskoslezský Morava"
+               value="3242" >Opava – kostel sv. Jana Nepomuckého (3242)</option>
+   
+       <option class="chbcil" id="cil3244" data-tokens="Moravskoslezský Morava"
+               value="3244" >Dolní Marklovice – dřevěný kostel (3244)</option>
+   
+       <option class="chbcil" id="cil3246" data-tokens="Moravskoslezský Morava"
+               value="3246" >Chalupki (PL) – Palac Rotszyldów (3246)</option>
+   
+       <option class="chbcil" id="cil3250" data-tokens="Moravskoslezský Morava"
+               value="3250" >Vikštejn – zřícenina (3250)</option>
+   
+       <option class="chbcil" id="cil3253" data-tokens="Moravskoslezský Morava"
+               value="3253" >Hodslavice – umělecká vyhlídka Krásověda (3253)</option>
+   
+       <option class="chbcil" id="cil3258" data-tokens="Moravskoslezský Morava"
+               value="3258" >Bruntál – zámek (vstup) (3258)</option>
+   
+       <option class="chbcil" id="cil3267" data-tokens="Horská etapa Morava"
+               value="3267" >Godula – památník vydání tolerančního patentu (3267)</option>
+   
+       <option class="chbcil" id="cil3268" data-tokens="Horská etapa střed Morava"
+               value="3268" >Javorový – vrchol (3268)</option>
+   
+       <option class="chbcil" id="cil3269" data-tokens="Horská etapa Morava"
+               value="3269" >Malý Javorový – turistická chata (3269)</option>
+   
+       <option class="chbcil" id="cil3270" data-tokens="Horská etapa"
+               value="3270" >Vodní nádrž Bedřichov – hráz (3270)</option>
+   
+       <option class="chbcil" id="cil3271" data-tokens="Horská etapa střed"
+               value="3271" >Nová Louka – lovecký zámeček (3271)</option>
+   
+       <option class="chbcil" id="cil3272" data-tokens="Horská etapa"
+               value="3272" >Hašlerova chata (3272)</option>
+   
+       <option class="chbcil" id="cil3273" data-tokens="Horská etapa"
+               value="3273" >Žacléř – hornický skanzen (vstup) (3273)</option>
+   
+       <option class="chbcil" id="cil3274" data-tokens="Horská etapa střed"
+               value="3274" >Horní Albeřice – muzeum Vápenka (3274)</option>
+   
+       <option class="chbcil" id="cil3275" data-tokens="Horská etapa"
+               value="3275" >Horní Lysečiny – kaple Narození Páně (3275)</option>
+   
+       <option class="chbcil" id="cil3279" data-tokens="Horská etapa"
+               value="3279" >Velhartice – hrad (vstup) (3279)</option>
+   
+       <option class="chbcil" id="cil3280" data-tokens="Horská etapa střed"
+               value="3280" >Svinná – kaple sv. Vendelína (3280)</option>
+   
+       <option class="chbcil" id="cil3281" data-tokens="Horská etapa"
+               value="3281" >Můstek – turistický přístřešek (3281)</option>
+   
+       <option class="chbcil" id="cil3285" data-tokens="Horská etapa"
+               value="3285" >Cínovec – pomník první zmínky o obci (3285)</option>
+   
+       <option class="chbcil" id="cil3286" data-tokens="Horská etapa střed"
+               value="3286" >Kohlhaukuppe (DE) – rozhledna (3286)</option>
+   
+       <option class="chbcil" id="cil3287" data-tokens="Horská etapa"
+               value="3287" >Komáří vížka – rozhledna (3287)</option>
+   
+       <option class="chbcil" id="cil3288" data-tokens="Horská etapa Morava"
+               value="3288" >Pálavský anděl lásky (3288)</option>
+   
+       <option class="chbcil" id="cil3289" data-tokens="Horská etapa střed Morava"
+               value="3289" >Děvín – vyhlídka (3289)</option>
+   
+       <option class="chbcil" id="cil3290" data-tokens="Horská etapa Morava"
+               value="3290" >Dolní Dunajovice – muzeum vinařství (3290)</option>
+   
+       <option class="chbcil" id="cil3291" data-tokens="Horská etapa Morava"
+               value="3291" >Paprsek – horský hotel (3291)</option>
+   
+       <option class="chbcil" id="cil3292" data-tokens="Horská etapa střed Morava"
+               value="3292" >Medvědí bouda – rozcestník (3292)</option>
+   
+       <option class="chbcil" id="cil3293" data-tokens="Horská etapa Morava"
+               value="3293" >Kladské sedlo – rozcestník (3293)</option>
+   
+       <option class="chbcil" id="cil3333" data-tokens="None"
+               value="3333" >Olomouc - start (3333)</option>
+   
+       <option class="chbcil" id="cil3334" data-tokens="None"
+               value="3334" >Olomouc - cíl (3334)</option>
+   
+</select>
+        </div>
+    </div>
+    </form>
+
+
+<script>
+    setFilterCombos();
+    loadCookies(document.getElementById("vysledky"));
+    fetchTrasy();
+</script>
+
+
+<div class="table-responsive">
+<table class='class=table-sm trasa'>
+    <tr>
+        <th>Checkpoint</th>
+        <th>Čas</th>
+        <th>Body</th>
+        <th>Km</th>
+        <th>Výkon 1</th>
+        <th>Výkon 2</th>
+        <th>Spánek</th>
+        <th>První</th>
+        <th>Druhý</th>
+        <th>Detail</th>
+    </tr>
+</table>
+</div>
+      <input type="hidden" id="row" value="0">
+      <input type="hidden" id="all" value="0">
+</div>
+
+</body>
+</html>

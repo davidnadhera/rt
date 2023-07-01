@@ -1,0 +1,18 @@
+<header>
+    <nav class="navbar fixed-top navbar-expand-sm bg-info navbar-dark">
+        <div class="navbar-collapse collapse w-100 order-1 order-md-0 dual-collapse2">
+            <ul class="navbar-nav mr-auto">
+                <li class="nav-item"><a class="nav-link" href="{% url 'railtour:stanice' %}">Editor stanic</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'railtour:spojeni' %}">Vyhledat spojení</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'railtour:odjezdy' %}">Odjezdy/příjezdy</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'railtour:trasy' %}">Výpočet tras</a></li>
+            </ul>
+        </div>
+        <div class="navbar-collapse collapse w-100 order-3 dual-collapse2">
+            <ul class="navbar-nav ml-auto">
+                <li class="nav-item ml-auto"><a class="nav-link" href='railtour/logout'>Odhlásit</a></li>
+            </ul>
+        </div>
+        <hr>
+    </nav>
+</header>
